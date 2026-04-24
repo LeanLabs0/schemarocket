@@ -3,26 +3,27 @@
 Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis and a gated fix-plan CTA.
 
 **Live:** https://schemarocket.netlify.app/
-**Backend:** `https://factor8-agent-sdk.fly.dev/api/v1/brand-slug/lean-labs/query` ([factor8-agent-sdk](https://github.com/LeanLabs0/factor8-agent-sdk))
-**Status:** V1 prototype — design pass + dev polish pending.
+**Backend repo:** [factor8-agent-sdk](https://github.com/LeanLabs0/factor8-agent-sdk)
+**Backend URL:** `https://factor8-agent-sdk.fly.dev/api/v1/brand-slug/lean-labs/query`
+**Status:** V1 prototype. Design pass and dev polish pending.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `index.html` | 3 screens: INPUT → SCANNING → RESULTS. Static markup. |
-| `app.js` | State machine + fetch to backend agent. Parses JSON response into dimension cards + gap cards + gated fix plan. |
-| `styles.css` | All styling. Currently uses Skittles palette — brand pass pending (Maria). |
+| `index.html` | 3 screens: INPUT, SCANNING, RESULTS. Static markup. |
+| `app.js` | State machine plus fetch to backend. Parses JSON into dimension cards, gap cards, and gated fix plan. |
+| `styles.css` | All styling. Currently uses Skittles palette. Brand pass pending. |
 
 ## Deploy
 
 Manual drag-drop to Netlify for now. No CI wired.
 
-1. Edit files locally
-2. Netlify dashboard → `schemarocket` site → **Deploys** tab → drag-drop the folder
-3. Takes ~30 seconds to go live
+1. Edit files locally.
+2. Netlify dashboard → `schemarocket` site → **Deploys** tab → drag-drop the folder.
+3. Takes about 30 seconds to go live.
 
-**Future:** connect this repo to Netlify for auto-deploy on push to `main`.
+Future: connect this repo to Netlify for auto-deploy on push to `main`.
 
 ## API contract
 
@@ -37,59 +38,80 @@ Backend returns JSON with:
   gaps: Array<{ priority: "high"|"moderate", title, description }>;
   gapCount: number;
   fixPlan: Array<{ step, action, impact: "+N points", effort }>;
-  typeMap: Array<{ type, label, status, issues }>;  // NEW — not yet rendered
+  typeMap: Array<{ type, label, status, issues }>;  // NEW, not yet rendered
   competitors: [];
   competitorDiscoveryAvailable: false;
 }
 ```
 
-## Edward — Handoff TODOs
+---
 
-Priority order (from Kevin's V1 walkthrough, 2026-04-23):
+## Design handoff (Maria)
 
-### 1. Type-map pill row (HIGH — Kevin's #1 visual ask)
-Render `typeMap[]` from backend response as a horizontal row of pills above the dimension bars. Spec:
-[`factor8_app/docs/specs/schema-score-type-map.md`](https://github.com/LeanLabs0/factor8-agent-sdk/blob/main/docs/specs/schema-score-type-map.md)
+Target: Thu May 1.
+
+### 1. Brand pass on colors
+Current gradient (purple / pink / orange) needs to match Lean Labs brand. Kevin flagged it as "too Skittles" in the V1 walkthrough. Apply the standard Lean Labs palette from the brand guidelines.
+
+### 2. Type-map pill row
+New section above the dimension bars. Horizontal row of status pills, one per expected schema type. The backend already sends the data (see `typeMap[]` in the API contract above).
 
 Status colors:
-- 🟢 green = `present`
-- 🟡 yellow = `present_incomplete`
-- 🔴 red = `missing`
-- ⚫ gray = `not_applicable`
+- 🟢 green = present
+- 🟡 yellow = present but incomplete
+- 🔴 red = missing
+- ⚫ gray = not applicable
 
-Pill label: `label` field (plain English, e.g. "Company"). Hover/tap shows `issues[]`.
+Pill label is plain English (`Company`, `Site`, `Page`, `Breadcrumbs`). Hover or tap expands a tooltip with the `issues` list. On mobile the pills wrap and issues collapse by default.
 
-### 2. "Score Another URL" rerun button (HIGH)
+Full data contract in the backend repo: [`docs/specs/schema-score-type-map.md`](https://github.com/LeanLabs0/factor8-agent-sdk/blob/main/docs/specs/schema-score-type-map.md).
+
+### 3. Hero headline layout
+Current H2 is too long for the URL input line on mobile. Once Kevin picks from 3 copy options (Ralph sending in Slack), adjust the headline area to max-width 640px so it fits cleanly above the input on both desktop and mobile.
+
+---
+
+## Dev handoff (Edward)
+
+Target: Mon May 5.
+
+Priority order, from Kevin's V1 walkthrough (2026-04-23).
+
+### 1. Type-map pill rendering (HIGH)
+Kevin's #1 visual ask. Parse `typeMap[]` from the backend response and render Maria's pill design above the dimension bars. See Maria's section for status colors and labels.
+
+### 2. "Score Another URL" button (HIGH)
 Kevin: "The only way I can run it again is to start over by refreshing."
 
-Add sticky pill button at top-right of results screen with `↻` icon. Click → hide results, show INPUT screen, clear the URL field. No browser reload.
+Sticky pill button at top-right of the results screen with a rotate icon. Click resets to the INPUT screen and clears the URL field. No browser reload.
 
-### 3. Fix Plan CTA destination (HIGH)
-Currently points to `https://calendly.com/leanlabs`. Confirm this is right target with Ralph. Button copy: "Get My Fix Plan" recommended. Open in new tab.
+### 3. Fix Plan CTA link (HIGH)
+Currently points to `https://calendly.com/leanlabs`. Confirm correct destination with Kevin (likely `lean-labs.com/book-a-call`). Button copy: "Get My Fix Plan". Open in a new tab.
 
-### 4. Hero headline fit (MEDIUM)
-Current H2 "How does your structured data stack up?" is too long for the URL input line on some widths. Ralph is drafting 3 alternative options — ask him in Slack.
+### 4. Remove blurred gated-preview cards (HIGH)
+The results screen shows 5 numbered placeholder cards ("Implementation timeline", "Rich result eligibility", etc.) that look like a broken preview. Kevin flagged this as confusing. Show the top 4 gaps in full, then one clean CTA below.
 
-### 5. Logo + external links (MEDIUM)
-- Nav logo → `https://www.lean-labs.com/` (same tab)
-- All external links (`validator.schema.org`, `search.google.com`, calendly) → `target="_blank" rel="noopener noreferrer"`
+### 5. Logo and external links (MEDIUM)
+- Nav logo: link to `https://www.lean-labs.com/` (same tab).
+- External links (`validator.schema.org`, `search.google.com`, the CTA): `target="_blank" rel="noopener noreferrer"`.
 
-### 6. Brand color pass (MEDIUM — Maria)
-Kevin: "Too Skittles." Maria to replace the purple/pink/orange gradient with brand palette from Lean Labs guidelines.
+### 6. Hero headline copy (MEDIUM)
+Swap in once Kevin picks from Ralph's 3 options.
 
-### 7. Remove gated-lock blur UI (low)
-The current results show 5 numbered placeholder cards ("Implementation timeline", "Rich result eligibility", etc.) that look like a blurred preview. Kevin flagged this as confusing. Simpler: show top 4 gaps fully, end with one clear CTA.
+---
 
-## Backend changes shipped (2026-04-23)
+## Backend changes already shipped (2026-04-23)
 
-Already live on Fly, no frontend action needed:
-- URL normalization — same URL typed differently now scores identically
-- Plain-English verdict + gap descriptions (some Haiku-tier leakage of bare type names remains)
-- `fixPlan[]` sorted by `+N points` descending
-- `typeMap[]` emitted in JSON (see TODO #1 to render)
+Live on Fly, no frontend action needed:
+- URL normalization. Same URL typed different ways now returns valid reports (was returning F/0 on some variants).
+- Plain-English verdict and gap titles. Some bare type names still leak into gap descriptions due to Haiku model compliance.
+- `fixPlan[]` sorted by `+N points` descending.
+- `typeMap[]` emitted in the JSON response (see design TODO 2).
+
+Known V1 limitation: scores for the same URL can wobble ±5 to 15 points between calls because the agent runs Haiku at temperature 0.2. Stable across grade bands, not identical. Post-V1 decision on whether to move to temperature 0 or upgrade to Sonnet.
 
 ## Contact
 
-- Product + agent behavior: Ralph (@ralphlemosLL)
+- Product and agent behavior: Ralph (`@ralphlemosLL`)
 - Design: Maria
 - Frontend code: Edward
