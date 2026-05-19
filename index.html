@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=20260518-modals">
 <!-- SVG gradient definition for reuse -->
 <svg width="0" height="0" style="position:absolute">
   <defs>
@@ -243,6 +244,16 @@
 
 </div><!-- /page-container -->
 
-<script src="app.js"></script>
+<!-- ============================================ -->
+<!-- MODAL ROOT                                   -->
+<!-- ============================================ -->
+<div id="modalBackdrop" class="modal-backdrop" onclick="closeIfBackdrop(event)">
+  <div class="modal" id="modalCard">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script src="app.js?v=20260519-fix1"></script>
 </body>
 </html>

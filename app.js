@@ -262,8 +262,18 @@ function renderResults(data, url) {
   const grade = overall.grade || data.grade || 'N/A';
   const score = overall.score ?? data.score_value ?? data.total_score ?? '?';
   const verdict = overall.verdict || data.verdict || data.summary || '';
-  const dimensions = data.dimensions || data.scores || data.dimension_scores || [];
-  const gaps = data.gaps || data.missing || data.issues || [];
+  const dimensions = (data.dimensions || data.scores || data.dimension_scores || []).map((d) => ({
+    ...d,
+    rationale: d.rationale ?? null,
+    evidence: d.evidence ?? null,
+    remediation: d.remediation ?? null,
+  }));
+  const gaps = (data.gaps || data.missing || data.issues || []).map((g) => ({
+    ...g,
+    location: g.location ?? null,
+    currentSnippet: g.currentSnippet ?? null,
+    fixSnippet: g.fixSnippet ?? null,
+  }));
   const fixPlan = data.fix_plan || data.fixes || data.recommendations || [];
 
   renderGrade(grade, score, verdict, url);
@@ -293,10 +303,11 @@ function renderDimensions(dims) {
   const container = $('#dimensionsContainer');
   container.innerHTML = '';
 
-  // Handle array or object
+  // Handle array or object — preserve all fields (rationale, evidence, remediation)
   let entries = [];
   if (Array.isArray(dims)) {
     entries = dims.map((d) => ({
+      ...d,
       name: d.name || d.dimension || d.label || 'Unknown',
       score: d.score ?? d.value ?? 0,
       max: d.max ?? 100,
@@ -304,6 +315,7 @@ function renderDimensions(dims) {
     }));
   } else if (typeof dims === 'object') {
     entries = Object.entries(dims).map(([k, v]) => ({
+      ...(typeof v === 'object' ? v : {}),
       name: k,
       score: typeof v === 'object' ? (v.score ?? v.value ?? 0) : v,
       max: typeof v === 'object' ? (v.max ?? 100) : 100,
@@ -335,7 +347,9 @@ function renderDimensions(dims) {
       <span class="dimension-name">${esc(dim.name)}</span>
       <div class="dimension-bar-track"><div class="dimension-bar-fill ${level}" style="width: ${pct}%;"></div></div>
       <span class="dimension-score">${scoreLabel}</span>
+      <span class="dimension-chevron">&rsaquo;</span>
     `;
+    row.addEventListener('click', () => openDimModal(dim));
     container.appendChild(row);
   });
 }
@@ -365,7 +379,9 @@ function renderGaps(gaps) {
       <div class="gap-priority ${priority}">${label}</div>
       <h4>${esc(gap.title || gap.name || gap.issue || 'Issue ' + (i + 1))}</h4>
       <p>${esc(gap.description || gap.detail || gap.details || '')}</p>
+      <div class="gap-cta">View fix code &rarr;</div>
     `;
+    card.addEventListener('click', () => openGapModal(gap));
     container.appendChild(card);
   });
 
@@ -421,3 +437,129 @@ function esc(str) {
 function delay(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
+
+// ── Modal: dimension detail ─────────────────────────────────
+function openDimModal(dim) {
+  const pct = Number(dim.pct ?? (dim.max ? Math.round((dim.score / dim.max) * 100) : 0));
+  const verdict = pct === 100 ? 'Full marks' : pct >= 70 ? 'Mostly there' : pct >= 40 ? 'Partial credit' : 'Needs work';
+  const rationale = dim.rationale || 'Detail not available.';
+
+  let html = `
+    <div class="modal-header">
+      <span class="modal-badge">Dimension Detail</span>
+    </div>
+    <h2>${esc(dim.name)}</h2>
+    <div class="modal-score-line">
+      <span class="modal-score-pill">${dim.score ?? 0} / ${dim.max ?? 100}</span>
+      <span>${pct}% &mdash; ${verdict}</span>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Why this score</div>
+      <div class="modal-rationale">${esc(rationale)}</div>
+    </div>
+  `;
+
+  if (dim.evidence) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-label">Schema that earned the points</div>
+        ${codeBlock(dim.evidence, 'found')}
+      </div>
+    `;
+  }
+
+  if (dim.remediation) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-label">Schema needed to reach max</div>
+        ${codeBlock(dim.remediation, 'needed')}
+      </div>
+    `;
+  }
+
+  showModal(html);
+}
+
+// ── Modal: gap detail ───────────────────────────────────────
+function openGapModal(gap) {
+  const priority = (gap.priority || '').toLowerCase();
+  const isHigh = priority === 'high' || priority === 'critical';
+  const badgeBg = isHigh ? '#fee2e2' : '#fef3c7';
+  const badgeFg = isHigh ? '#dc2626' : '#92400e';
+  const badgeLabel = isHigh ? 'High Impact Gap' : 'Moderate Gap';
+  const isMissing = gap.currentSnippet === null || gap.currentSnippet === undefined;
+
+  let html = `
+    <div class="modal-header">
+      <span class="modal-badge" style="background:${badgeBg}; color:${badgeFg};">${badgeLabel}</span>
+    </div>
+    <h2>${esc(gap.title || gap.name || 'Gap')}</h2>
+    <p class="modal-description">${esc(gap.description || '')}</p>
+  `;
+
+  if (gap.location) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-label">Where it lives</div>
+        <span class="modal-location">&#128205; ${esc(gap.location)}</span>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="modal-section">
+      <div class="modal-section-label">${isMissing ? 'Current state' : 'Current schema'}</div>
+      ${isMissing
+        ? `<div class="code-block missing">&mdash; No schema for this exists on the page &mdash;</div>`
+        : codeBlock(gap.currentSnippet, 'found')}
+    </div>
+  `;
+
+  if (gap.fixSnippet) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-label">Drop-in fix</div>
+        ${codeBlock(gap.fixSnippet, 'needed')}
+      </div>
+    `;
+  }
+
+  showModal(html);
+}
+
+// ── Modal helpers ───────────────────────────────────────────
+function codeBlock(code, variant) {
+  const escaped = String(code)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return `
+    <div class="code-block ${variant}">
+      <button class="code-copy" onclick="copyCode(this)">Copy</button>
+      <code>${escaped}</code>
+    </div>
+  `;
+}
+
+function copyCode(btn) {
+  const code = btn.nextElementSibling.textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => (btn.textContent = orig), 1500);
+  });
+}
+
+function showModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+}
+function closeIfBackdrop(e) {
+  if (e.target.id === 'modalBackdrop') closeModal();
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
