@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema Score — Modal Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<style>
+/* ── PREVIEW LAYOUT ─────────────────────────────────────── */
+.preview-shell {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+.preview-banner {
+  background: var(--ll-purple-tint);
+  border: 1px solid var(--ll-purple-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 32px;
+  font-size: 13px;
+  color: var(--ll-body);
+}
+.preview-banner strong { color: var(--ll-purple); }
+.preview-section { margin-bottom: 48px; }
+.preview-section h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: var(--ll-heading);
+  border-bottom: 2px solid var(--ll-purple);
+  padding-bottom: 8px;
+  display: inline-block;
+}
+
+/* clickable affordance on existing cards */
+.dim-row-clickable {
+  cursor: pointer;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--ll-border-light);
+  background: var(--ll-white);
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 200px 1fr 60px 24px;
+  align-items: center;
+  gap: 16px;
+  transition: var(--transition);
+}
+.dim-row-clickable:hover {
+  border-color: var(--ll-purple);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(2px);
+}
+.dim-row-clickable .dim-name { font-weight: 500; color: var(--ll-heading); font-size: 14px; }
+.dim-row-clickable .dim-bar-track {
+  height: 8px; background: var(--ll-border-light); border-radius: 4px; overflow: hidden;
+}
+.dim-row-clickable .dim-bar-fill {
+  height: 100%; border-radius: 4px;
+}
+.dim-bar-fill.high { background: var(--grade-green); }
+.dim-bar-fill.mid { background: var(--grade-amber); }
+.dim-bar-fill.low { background: var(--grade-red); }
+.dim-row-clickable .dim-score { font-weight: 600; color: var(--ll-heading); text-align: right; font-size: 14px; }
+.dim-row-clickable .dim-chevron {
+  color: var(--ll-muted); font-size: 18px; text-align: center;
+}
+
+.gap-card-clickable {
+  cursor: pointer;
+  background: var(--ll-white);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: var(--transition);
+  position: relative;
+}
+.gap-card-clickable:hover {
+  border-color: var(--ll-purple);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.gap-card-clickable.critical { border-left: 4px solid var(--grade-red); }
+.gap-card-clickable.moderate { border-left: 4px solid var(--grade-amber); }
+.gap-priority {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 12px;
+  margin-bottom: 10px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.gap-priority.critical { background: #fee; color: var(--grade-red); }
+.gap-priority.moderate { background: #fef3c7; color: #92400e; }
+.gap-card-clickable h4 { font-size: 15px; margin-bottom: 8px; color: var(--ll-heading); }
+.gap-card-clickable p { font-size: 13px; color: var(--ll-body); margin: 0; }
+.gap-cta {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--ll-purple);
+  font-weight: 500;
+}
+
+.gap-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(29, 28, 34, 0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--ll-white);
+  border-radius: var(--radius-xl);
+  max-width: 780px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: var(--ll-off-white);
+  border: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--ll-muted);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--ll-border); color: var(--ll-heading); }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.modal-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--ll-purple-tint);
+  color: var(--ll-purple);
+}
+.modal h2 {
+  font-size: 24px;
+  color: var(--ll-heading);
+  margin: 4px 0 8px 0;
+}
+.modal-score-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--ll-body);
+}
+.modal-score-pill {
+  background: var(--ll-off-white);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--ll-heading);
+}
+
+.modal-section { margin-bottom: 24px; }
+.modal-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--ll-muted);
+  margin-bottom: 8px;
+}
+.modal-rationale {
+  background: var(--ll-purple-tint);
+  border-left: 3px solid var(--ll-purple);
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--ll-body);
+  line-height: 1.6;
+}
+.modal-location {
+  font-size: 13px;
+  color: var(--ll-body);
+  padding: 8px 12px;
+  background: var(--ll-off-white);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.code-block {
+  position: relative;
+  background: #1d1c22;
+  color: #e0e0e0;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  font-family: 'JetBrains Mono', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+.code-block.found {
+  border-left: 4px solid var(--grade-green);
+}
+.code-block.needed {
+  border-left: 4px solid var(--ll-purple);
+}
+.code-block.missing {
+  border-left: 4px solid var(--grade-red);
+  background: #2a1f1f;
+  color: #ffb3b3;
+  font-style: italic;
+  text-align: center;
+  padding: 24px;
+}
+.code-copy {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-family);
+}
+.code-copy:hover { background: rgba(255,255,255,0.2); }
+
+.code-syntax-key { color: #a5d6ff; }
+.code-syntax-value { color: #ffa657; }
+.code-syntax-bracket { color: #c9d1d9; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV (reused) -->
+<div class="nav">
+  <div class="nav-logo">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+    </div>
+    <span class="nav-logo-text">Schema <span class="gradient-text">Score</span></span>
+  </div>
+  <span class="nav-right">Modal Preview · Placeholder Data</span>
+</div>
+
+<div class="preview-shell">
+
+  <div class="preview-banner">
+    <strong>Preview only.</strong> Two new interactions: (1) click any <em>dimension row</em> to see why it scored what it did + the schema code involved. (2) Click any <em>gap card</em> to see the broken / missing schema + the fix code to paste in. Modals open below — click rows to test.
+  </div>
+
+  <!-- DIMENSION ROWS PREVIEW -->
+  <div class="preview-section">
+    <h2>Score by Dimension &nbsp;<span style="font-size: 12px; color: var(--ll-muted); font-weight: 400;">→ click any row</span></h2>
+
+    <div class="dim-row-clickable" onclick="openDimModal(0)">
+      <span class="dim-name">Code Quality</span>
+      <div class="dim-bar-track"><div class="dim-bar-fill high" style="width: 100%;"></div></div>
+      <span class="dim-score">15 / 15</span>
+      <span class="dim-chevron">›</span>
+    </div>
+
+    <div class="dim-row-clickable" onclick="openDimModal(1)">
+      <span class="dim-name">Required Types Present</span>
+      <div class="dim-bar-track"><div class="dim-bar-fill mid" style="width: 75%;"></div></div>
+      <span class="dim-score">15 / 20</span>
+      <span class="dim-chevron">›</span>
+    </div>
+
+    <div class="dim-row-clickable" onclick="openDimModal(2)">
+      <span class="dim-name">Required Fields Filled</span>
+      <div class="dim-bar-track"><div class="dim-bar-fill low" style="width: 35%;"></div></div>
+      <span class="dim-score">7 / 20</span>
+      <span class="dim-chevron">›</span>
+    </div>
+  </div>
+
+  <!-- GAP CARDS PREVIEW -->
+  <div class="preview-section">
+    <h2>What's Missing &nbsp;<span style="font-size: 12px; color: var(--ll-muted); font-weight: 400;">→ click any card</span></h2>
+
+    <div class="gap-grid-2">
+      <div class="gap-card-clickable critical" onclick="openGapModal(0)">
+        <div class="gap-priority critical">High Impact</div>
+        <h4>Your company entity is missing social profile links</h4>
+        <p>Search engines can't connect your site to your LinkedIn, X, or YouTube — losing brand recognition signals.</p>
+        <div class="gap-cta">View fix code →</div>
+      </div>
+
+      <div class="gap-card-clickable critical" onclick="openGapModal(1)">
+        <div class="gap-priority critical">High Impact</div>
+        <h4>No breadcrumb navigation declared</h4>
+        <p>Google can't show your page hierarchy in search results, costing you sitelinks and rich snippets.</p>
+        <div class="gap-cta">View fix code →</div>
+      </div>
+
+      <div class="gap-card-clickable moderate" onclick="openGapModal(2)">
+        <div class="gap-priority moderate">Moderate</div>
+        <h4>Your page is missing a last-updated date</h4>
+        <p>AI engines prefer fresh content. Adding a last-updated date helps prove your content is current.</p>
+        <div class="gap-cta">View fix code →</div>
+      </div>
+
+      <div class="gap-card-clickable moderate" onclick="openGapModal(3)">
+        <div class="gap-priority moderate">Moderate</div>
+        <h4>Logo declared as plain URL instead of image with dimensions</h4>
+        <p>Google's strictest checks want width + height. Without them, your logo may not appear in Knowledge Panel.</p>
+        <div class="gap-cta">View fix code →</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL ROOT                                   -->
+<!-- ============================================ -->
+<div id="modalBackdrop" class="modal-backdrop" onclick="closeIfBackdrop(event)">
+  <div class="modal" id="modalCard">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ── Placeholder data ──────────────────────────────────────
+const DIM_DATA = [
+  {
+    name: 'Code Quality',
+    score: 15, max: 15, pct: 100,
+    rationale: 'Your schema markup is valid JSON-LD with proper @context references, no duplicate types, no deprecated properties, and is correctly placed in the page head. Full marks.',
+    evidence: `<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Lean Labs",
+  "url": "https://www.leanlabs.com"
+}
+<\/script>`,
+    remediation: null
+  },
+  {
+    name: 'Required Types Present',
+    score: 15, max: 20, pct: 75,
+    rationale: 'You have your company entity (Organization), your site entity (WebSite), and your page entity (WebPage) — but breadcrumb navigation is missing. That costs you 5 points and hurts how Google shows your page in search results.',
+    evidence: `{
+  "@type": "Organization",
+  "@id": "https://www.leanlabs.com#organization"
+},
+{
+  "@type": "WebSite",
+  "@id": "https://www.leanlabs.com#website"
+},
+{
+  "@type": "WebPage",
+  "@id": "https://www.leanlabs.com/pricing"
+}`,
+    remediation: `{
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.leanlabs.com" },
+    { "@type": "ListItem", "position": 2, "name": "Pricing" }
+  ]
+}`
+  },
+  {
+    name: 'Required Fields Filled',
+    score: 7, max: 20, pct: 35,
+    rationale: 'Most of your required fields are empty. Your company entity is missing description, logo dimensions, and social profile links. Your page entity is missing description and last-updated date. This is the highest-value fix on the page.',
+    evidence: `{
+  "@type": "Organization",
+  "name": "Lean Labs",
+  "url": "https://www.leanlabs.com",
+  "logo": "https://www.leanlabs.com/logo.png"
+}`,
+    remediation: `{
+  "@type": "Organization",
+  "@id": "https://www.leanlabs.com#organization",
+  "name": "Lean Labs",
+  "url": "https://www.leanlabs.com",
+  "description": "Growth marketing agency for B2B SaaS.",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://www.leanlabs.com/logo.png",
+    "width": 600,
+    "height": 200
+  },
+  "sameAs": [
+    "https://www.linkedin.com/company/lean-labs",
+    "https://twitter.com/leanlabs",
+    "https://www.youtube.com/@leanlabs"
+  ]
+}`
+  }
+];
+
+const GAP_DATA = [
+  {
+    priority: 'high',
+    title: 'Your company entity is missing social profile links',
+    description: "Search engines can't connect your site to your LinkedIn, X, or YouTube — losing brand recognition signals.",
+    location: 'Inside your company entity (Organization block)',
+    currentSnippet: `{
+  "@type": "Organization",
+  "name": "Lean Labs",
+  "url": "https://www.leanlabs.com",
+  "logo": "https://www.leanlabs.com/logo.png"
+}`,
+    fixSnippet: `{
+  "@type": "Organization",
+  "name": "Lean Labs",
+  "url": "https://www.leanlabs.com",
+  "logo": "https://www.leanlabs.com/logo.png",
+  "sameAs": [
+    "https://www.linkedin.com/company/lean-labs",
+    "https://twitter.com/leanlabs",
+    "https://www.youtube.com/@leanlabs"
+  ]
+}`
+  },
+  {
+    priority: 'high',
+    title: 'No breadcrumb navigation declared',
+    description: "Google can't show your page hierarchy in search results, costing you sitelinks and rich snippets.",
+    location: 'New schema block — add to page head alongside your existing schema',
+    currentSnippet: null,
+    fixSnippet: `<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home",    "item": "https://www.leanlabs.com" },
+    { "@type": "ListItem", "position": 2, "name": "Services","item": "https://www.leanlabs.com/services" },
+    { "@type": "ListItem", "position": 3, "name": "AEO" }
+  ]
+}
+<\/script>`
+  },
+  {
+    priority: 'moderate',
+    title: 'Your page is missing a last-updated date',
+    description: 'AI engines prefer fresh content. Adding a last-updated date helps prove your content is current.',
+    location: 'Inside your page entity (WebPage block)',
+    currentSnippet: `{
+  "@type": "WebPage",
+  "name": "AEO Services",
+  "url": "https://www.leanlabs.com/aeo"
+}`,
+    fixSnippet: `{
+  "@type": "WebPage",
+  "name": "AEO Services",
+  "url": "https://www.leanlabs.com/aeo",
+  "dateModified": "2026-05-18",
+  "datePublished": "2025-11-01"
+}`
+  },
+  {
+    priority: 'moderate',
+    title: 'Logo declared as plain URL instead of image with dimensions',
+    description: "Google's strictest checks want width + height. Without them, your logo may not appear in Knowledge Panel.",
+    location: 'Inside your company entity (Organization block, logo field)',
+    currentSnippet: `{
+  "logo": "https://www.leanlabs.com/logo.png"
+}`,
+    fixSnippet: `{
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://www.leanlabs.com/logo.png",
+    "width": 600,
+    "height": 200
+  }
+}`
+  }
+];
+
+// ── Modal renderers ───────────────────────────────────────
+function openDimModal(idx) {
+  const d = DIM_DATA[idx];
+  const html = `
+    <div class="modal-header">
+      <span class="modal-badge">Dimension Detail</span>
+    </div>
+    <h2>${d.name}</h2>
+    <div class="modal-score-line">
+      <span class="modal-score-pill">${d.score} / ${d.max}</span>
+      <span>${d.pct}% — ${d.pct === 100 ? 'Full marks' : (d.pct >= 70 ? 'Mostly there' : 'Needs work')}</span>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-label">Why this score</div>
+      <div class="modal-rationale">${d.rationale}</div>
+    </div>
+
+    ${d.evidence ? `
+    <div class="modal-section">
+      <div class="modal-section-label">Schema that earned the points</div>
+      ${codeBlock(d.evidence, 'found')}
+    </div>` : ''}
+
+    ${d.remediation ? `
+    <div class="modal-section">
+      <div class="modal-section-label">Schema needed to reach max</div>
+      ${codeBlock(d.remediation, 'needed')}
+    </div>` : ''}
+  `;
+  showModal(html);
+}
+
+function openGapModal(idx) {
+  const g = GAP_DATA[idx];
+  const isMissing = g.currentSnippet === null;
+  const html = `
+    <div class="modal-header">
+      <span class="modal-badge" style="background:${g.priority==='high'?'#fee':'#fef3c7'}; color:${g.priority==='high'?'#ef4444':'#92400e'};">
+        ${g.priority === 'high' ? 'High Impact Gap' : 'Moderate Gap'}
+      </span>
+    </div>
+    <h2>${g.title}</h2>
+    <p style="color: var(--ll-body); margin-bottom: 20px; font-size: 14px;">${g.description}</p>
+
+    <div class="modal-section">
+      <div class="modal-section-label">Where it lives</div>
+      <span class="modal-location">📍 ${g.location}</span>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-label">${isMissing ? 'Current state' : 'Current schema'}</div>
+      ${isMissing
+        ? `<div class="code-block missing">— No schema for this exists on the page —</div>`
+        : codeBlock(g.currentSnippet, 'found')}
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-label">Drop-in fix</div>
+      ${codeBlock(g.fixSnippet, 'needed')}
+    </div>
+  `;
+  showModal(html);
+}
+
+function codeBlock(code, variant) {
+  const escaped = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return `
+    <div class="code-block ${variant}">
+      <button class="code-copy" onclick="copyCode(this)">Copy</button>
+      <code>${escaped}</code>
+    </div>
+  `;
+}
+
+function copyCode(btn) {
+  const code = btn.nextElementSibling.textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function showModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+}
+function closeIfBackdrop(e) {
+  if (e.target.id === 'modalBackdrop') closeModal();
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>
