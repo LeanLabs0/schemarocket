@@ -26,6 +26,7 @@ npm run dev
 
 Then open `http://localhost:5500`.
 
+
 ### HubSpot persistence and retrieval
 
 - On each successful scan, the server upserts a record in HubSpot custom object `2-62805467` using property `url` as the unique website key.
@@ -35,13 +36,24 @@ Then open `http://localhost:5500`.
 
 ## Deploy
 
-Manual drag-drop to Netlify for now. No CI wired.
+Deploy on Vercel (recommended):
 
-1. Edit files locally.
-2. Netlify dashboard → `schemarocket` site → **Deploys** tab → drag-drop the folder.
-3. Takes about 30 seconds to go live.
+1. Import the GitHub repo in Vercel.
+2. Set **Root Directory** to `schemarocket`.
+3. Add env vars in Vercel project settings:
+   - `SCHEMA_API_URL`
+   - `SCHEMA_API_KEY`
+   - `SCHEMA_AGENT`
+   - `HUBSPOT_TOKEN`
+   - `HUBSPOT_SCHEMA_OBJECT_TYPE`
+   - `HUBSPOT_STATUS_AI_READY`
+   - `HUBSPOT_STATUS_NEEDS_ENRICHMENT`
+   - `HUBSPOT_STATUS_AT_RISK`
+4. Deploy.
 
-Future: connect this repo to Netlify for auto-deploy on push to `main`.
+Notes:
+- API endpoints are now serverless functions in `api/score.js` and `api/report.js`.
+- `vercel.json` explicitly routes `/api/score` and `/api/report` and serves `index.html` for app routes.
 
 ## API contract
 

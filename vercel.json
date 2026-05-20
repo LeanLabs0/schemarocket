@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    { "src": "/api/score", "dest": "/api/score.js" },
+    { "src": "/api/report", "dest": "/api/report.js" },
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
+  ]
+}
