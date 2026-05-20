@@ -310,17 +310,6 @@ function renderResults(data, url) {
   const verdict = overall.verdict || data.verdict || data.summary || '';
   const dimensions = (data.dimensions || data.scores || data.dimension_scores || []).map((d) => ({
     ...d,
-<<<<<<< Updated upstream
-    rationale: d.rationale ?? null,
-    evidence: d.evidence ?? null,
-    remediation: d.remediation ?? null,
-  }));
-  const gaps = (data.gaps || data.missing || data.issues || []).map((g) => ({
-    ...g,
-    location: g.location ?? null,
-    currentSnippet: g.currentSnippet ?? null,
-    fixSnippet: g.fixSnippet ?? null,
-=======
     rationale: d.rationale ?? d.why ?? null,
     evidence: d.evidence ?? d.currentSnippet ?? null,
     remediation: d.remediation ?? d.fixSnippet ?? null,
@@ -330,7 +319,6 @@ function renderResults(data, url) {
     location: g.location ?? g.where ?? null,
     currentSnippet: g.currentSnippet ?? g.current ?? g.existing ?? null,
     fixSnippet: g.fixSnippet ?? g.fix ?? g.recommended ?? null,
->>>>>>> Stashed changes
   }));
   const fixPlan = data.fix_plan || data.fixes || data.recommendations || [];
 
@@ -374,7 +362,7 @@ function renderDimensions(dims) {
   const container = $('#dimensionsContainer');
   container.innerHTML = '';
 
-  // Handle array or object — preserve all fields (rationale, evidence, remediation)
+  // Handle array or object
   let entries = [];
   if (Array.isArray(dims)) {
     entries = dims.map((d) => ({
@@ -420,10 +408,6 @@ function renderDimensions(dims) {
         <span class="dimension-name">${esc(dim.name)}</span>
       </div>
       <div class="dimension-bar-track"><div class="dimension-bar-fill ${level}" style="width: ${pct}%;"></div></div>
-<<<<<<< Updated upstream
-      <span class="dimension-score">${scoreLabel}</span>
-      <span class="dimension-chevron">&rsaquo;</span>
-=======
       <span class="dimension-score ${level}">${scoreLabel}</span>
       <span class="dimension-expand-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -431,7 +415,6 @@ function renderDimensions(dims) {
           <path d="m15 7 5 5-5 5"/>
         </svg>
       </span>
->>>>>>> Stashed changes
     `;
     row.addEventListener('click', () => openDimModal(dim));
     container.appendChild(row);
@@ -532,16 +515,6 @@ function openDimModal(dim) {
     <div class="modal-header">
       <span class="modal-badge">Dimension Detail</span>
     </div>
-<<<<<<< Updated upstream
-    <h2>${esc(dim.name)}</h2>
-    <div class="modal-score-line">
-      <span class="modal-score-pill">${dim.score ?? 0} / ${dim.max ?? 100}</span>
-      <span>${pct}% &mdash; ${verdict}</span>
-    </div>
-    <div class="modal-section">
-      <div class="modal-section-label">Why this score</div>
-      <div class="modal-rationale">${esc(rationale)}</div>
-=======
     <h2 id="modalTitle">${esc(dim.name)}</h2>
     <div class="modal-score-line">
       <span class="modal-score-pill">${esc(String(dim.score ?? 0))} / ${esc(String(dim.max ?? 100))}</span>
@@ -550,7 +523,6 @@ function openDimModal(dim) {
     <div class="modal-section">
       <div class="modal-section-label">Why this score</div>
       <div class="modal-rationale">${esc(String(rationale))}</div>
->>>>>>> Stashed changes
     </div>
   `;
 
@@ -577,29 +549,16 @@ function openDimModal(dim) {
 
 // ── Modal: gap detail ───────────────────────────────────────
 function openGapModal(gap) {
-<<<<<<< Updated upstream
-  const priority = (gap.priority || '').toLowerCase();
-  const isHigh = priority === 'high' || priority === 'critical';
-  const badgeBg = isHigh ? '#fee2e2' : '#fef3c7';
-  const badgeFg = isHigh ? '#dc2626' : '#92400e';
-=======
   const priority = String(gap.priority || '').toLowerCase();
   const isHigh = priority === 'high' || priority === 'critical';
->>>>>>> Stashed changes
   const badgeLabel = isHigh ? 'High Impact Gap' : 'Moderate Gap';
   const isMissing = gap.currentSnippet === null || gap.currentSnippet === undefined;
 
   let html = `
     <div class="modal-header">
-<<<<<<< Updated upstream
-      <span class="modal-badge" style="background:${badgeBg}; color:${badgeFg};">${badgeLabel}</span>
-    </div>
-    <h2>${esc(gap.title || gap.name || 'Gap')}</h2>
-=======
       <span class="modal-badge ${isHigh ? 'high' : 'moderate'}">${badgeLabel}</span>
     </div>
     <h2 id="modalTitle">${esc(gap.title || gap.name || 'Gap')}</h2>
->>>>>>> Stashed changes
     <p class="modal-description">${esc(gap.description || '')}</p>
   `;
 
@@ -607,11 +566,7 @@ function openGapModal(gap) {
     html += `
       <div class="modal-section">
         <div class="modal-section-label">Where it lives</div>
-<<<<<<< Updated upstream
-        <span class="modal-location">&#128205; ${esc(gap.location)}</span>
-=======
         <span class="modal-location">${esc(gap.location)}</span>
->>>>>>> Stashed changes
       </div>
     `;
   }
@@ -639,22 +594,14 @@ function openGapModal(gap) {
 
 // ── Modal helpers ───────────────────────────────────────────
 function codeBlock(code, variant) {
-<<<<<<< Updated upstream
-  const escaped = String(code)
-=======
   const raw = typeof code === 'string' ? code : JSON.stringify(code, null, 2);
   const escaped = raw
->>>>>>> Stashed changes
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
   return `
     <div class="code-block ${variant}">
-<<<<<<< Updated upstream
-      <button class="code-copy" onclick="copyCode(this)">Copy</button>
-=======
       <button class="code-copy" type="button" onclick="copyCode(this)">Copy</button>
->>>>>>> Stashed changes
       <code>${escaped}</code>
     </div>
   `;
@@ -670,20 +617,6 @@ function copyCode(btn) {
 }
 
 function showModal(html) {
-<<<<<<< Updated upstream
-  document.getElementById('modalContent').innerHTML = html;
-  document.getElementById('modalBackdrop').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('modalBackdrop').classList.remove('open');
-}
-function closeIfBackdrop(e) {
-  if (e.target.id === 'modalBackdrop') closeModal();
-}
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
-});
-=======
   const content = $('#modalContent');
   const backdrop = $('#modalBackdrop');
   if (!content || !backdrop) return;
@@ -858,4 +791,3 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.copyCode = copyCode;
->>>>>>> Stashed changes
