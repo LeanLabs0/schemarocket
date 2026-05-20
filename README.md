@@ -29,27 +29,11 @@ Then open `http://localhost:5500`.
 
 ### HubSpot persistence and retrieval
 
-- On each successful scan, the server upserts a record in HubSpot custom object `2-62805467` using property `url` as the unique website key.
+- On each successful scan, the server upserts a record in HubSpot custom object using property `url` as the unique website key.
 - Record payload fields written: `url`, `audit_date`, `overall_score`, `overall_grade`, `status`, `report_json`, `external_report_id`.
 - Frontend supports retrieval by query parameter: `?jobID=<external_report_id>`.
 - Example: `http://localhost:5500/?jobID=4b3db6f7-...`
 
-## Deploy
-
-Deploy on Vercel (recommended):
-
-1. Import the GitHub repo in Vercel.
-2. Set **Root Directory** to `schemarocket`.
-3. Add env vars in Vercel project settings:
-   - `SCHEMA_API_URL`
-   - `SCHEMA_API_KEY`
-   - `SCHEMA_AGENT`
-   - `HUBSPOT_TOKEN`
-   - `HUBSPOT_SCHEMA_OBJECT_TYPE`
-   - `HUBSPOT_STATUS_AI_READY`
-   - `HUBSPOT_STATUS_NEEDS_ENRICHMENT`
-   - `HUBSPOT_STATUS_AT_RISK`
-4. Deploy.
 
 Notes:
 - API endpoints are now serverless functions in `api/score.js` and `api/report.js`.
