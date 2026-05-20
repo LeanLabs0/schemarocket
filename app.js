@@ -807,14 +807,34 @@ async function copyShareLink() {
 }
 
 function showButtonFeedback(btn, label, durationMs) {
-  const original = btn.dataset.label || btn.textContent;
+  const labelEl = ensureButtonLabelElement(btn);
+  const original = btn.dataset.label || labelEl.textContent;
   btn.dataset.label = original;
-  btn.textContent = label;
+  labelEl.textContent = label;
   btn.disabled = true;
   setTimeout(() => {
-    btn.textContent = original;
+    labelEl.textContent = original;
     updateShareLinkButtonState();
   }, durationMs);
+}
+
+function ensureButtonLabelElement(btn) {
+  const existing = btn.querySelector('[data-btn-label]');
+  if (existing) return existing;
+
+  const labelText = btn.textContent.replace(/\s+/g, ' ').trim();
+  btn.dataset.label = labelText;
+
+  // Keep icon nodes intact and move label text into a dedicated span.
+  Array.from(btn.childNodes).forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) node.remove();
+  });
+
+  const labelEl = document.createElement('span');
+  labelEl.setAttribute('data-btn-label', 'true');
+  labelEl.textContent = labelText;
+  btn.appendChild(labelEl);
+  return labelEl;
 }
 
 document.addEventListener('keydown', (e) => {
