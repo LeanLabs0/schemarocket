@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<<<<<<< Updated upstream
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Schema Score | How does your structured data stack up?</title>
@@ -19,227 +20,254 @@
     </linearGradient>
   </defs>
 </svg>
+=======
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema Rocket | Structured Data Score</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+>>>>>>> Stashed changes
 </head>
 <body>
+  <div class="site-bg"></div>
+  <div class="site-stars"></div>
 
-<!-- NAV -->
-<div class="nav">
-  <div class="nav-logo">
-    <div class="nav-icon">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+  <header class="nav">
+    <div class="nav-brand">
+      <img class="brand-dot" src="assets/icon.svg" alt="SchemaRocket logo" aria-hidden="true">
+      <span class="brand-text">SchemaRocket</span>
     </div>
-    <span class="nav-logo-text">Schema <span class="gradient-text">Score</span></span>
-  </div>
-  <span class="nav-right">by <span class="gradient-text">Lean Labs</span></span>
-</div>
+    <a class="nav-meta" href="https://www.leanlabs.com">by Lean Labs</a>
+  </header>
 
-<div class="page-container">
-
-  <!-- ============================================ -->
-  <!-- SCREEN 1: URL INPUT                          -->
-  <!-- ============================================ -->
-  <div id="screen-input" class="screen active">
-    <section class="screen-input-section">
-      <div class="input-glow-bg"></div>
-      <div class="centered">
-        <h2 class="hero-headline">How does your <span class="gradient-text">structured data</span> stack up?</h2>
-        <p class="hero-sub">Enter any URL and we'll audit your schema markup against Google's best practices in under 60 seconds.</p>
-      </div>
-
-      <div class="url-input-group">
-        <div class="url-input-wrapper">
-          <input type="url" id="urlField" class="url-input" placeholder="https://yourwebsite.com">
-        </div>
-        <button id="scoreBtn" class="btn-primary">Score My Schema &rarr;</button>
-      </div>
-
-      <div style="text-align: center; margin-top: var(--space-sm);">
-        <p class="input-footnote">Free. No signup required. Results in under 60 seconds.</p>
-      </div>
-    </section>
-  </div>
-
-  <!-- ============================================ -->
-  <!-- SCREEN 2: SCANNING / PROGRESS                -->
-  <!-- ============================================ -->
-  <div id="screen-scanning" class="screen">
-    <section class="screen-scanning-section">
-      <div class="centered" style="margin-bottom: var(--space-md);">
-        <h3>Analyzing your structured data</h3>
-      </div>
-
-      <div class="scan-container">
-        <div class="scan-url">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-          <span id="scanUrlText"></span>
+  <main class="page-container">
+    <div id="screen-input" class="screen active">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <h1>How strong is your <span class="text-accent">schema markup?</span></h1>
+          <p>Run a full structured-data audit in under 60 seconds and get the highest-impact fixes first.</p>
         </div>
 
-        <div class="scan-progress-bar">
-          <div class="scan-progress-fill"></div>
+        <div class="form-panel">
+          <label for="urlField">Website URL</label>
+          <div class="url-input-group">
+            <div class="url-input-wrapper">
+              <input type="url" id="urlField" class="url-input" placeholder="https://yourwebsite.com">
+            </div>
+            <button id="scoreBtn" class="btn-primary">Score my schema</button>
+          </div>
+          <p class="input-footnote">Free. No signup required. Results in under 60 seconds.</p>
+        </div>
+      </section>
+    </div>
+
+    <div id="screen-scanning" class="screen">
+      <section class="scan-shell">
+        <div class="scan-header">
+          <h2>Analyzing your structured data</h2>
+          <p>We are crawling your page, validating schema types, and generating prioritized improvements.</p>
         </div>
 
-        <div id="scanSteps" class="scan-steps">
-          <div class="scan-step">
-            <div class="scan-check">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
-            </div>
-            Fetching page and extracting structured data
+        <div class="scan-container">
+          <div class="scan-url">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            <span id="scanUrlText"></span>
           </div>
-          <div class="scan-step">
-            <div class="scan-check">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
-            </div>
-            Classifying page type
+
+          <div class="scan-progress-bar">
+            <div class="scan-progress-fill"></div>
           </div>
-          <div class="scan-step">
-            <div class="scan-check">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
+
+          <div id="scanSteps" class="scan-steps">
+            <div class="scan-step">
+              <div class="scan-check"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg></div>
+              Fetching page and extracting structured data
             </div>
-            Scoring against 7 quality dimensions
+            <div class="scan-step">
+              <div class="scan-check"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg></div>
+              Classifying page type
+            </div>
+            <div class="scan-step">
+              <div class="scan-check"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg></div>
+              Scoring against 7 quality dimensions
+            </div>
+            <div class="scan-step">
+              <div class="scan-check"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg></div>
+              Comparing against industry benchmarks
+            </div>
+            <div class="scan-step">
+              <div class="scan-check"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg></div>
+              Identifying gaps and generating fix plan
+            </div>
           </div>
-          <div class="scan-step">
-            <div class="scan-check">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
-            </div>
-            Comparing against industry benchmarks
-          </div>
-          <div class="scan-step">
-            <div class="scan-check">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
-            </div>
-            Identifying gaps and generating fix plan
+
+          <div id="errorMsg" class="error-message"></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="screen-results" class="screen">
+      <section class="results-grade-section">
+        <div class="results-toolbar">
+          <h2>Your Schema Report</h2>
+          <div class="results-toolbar-actions">
+            <button id="scoreAnotherBtn" class="btn-secondary" type="button">Start Over</button>
+            <button id="copyShareLinkBtn" class="btn-primary btn-share-link" type="button">Copy Share Link</button>
           </div>
         </div>
 
-        <!-- Error shown on this screen -->
-        <div id="errorMsg" class="error-message"></div>
-      </div>
-    </section>
-  </div>
+        <div class="grade-layout">
+          <div class="grade-container">
+            <div class="grade-circle" id="gradeCircle" aria-label="Visibility score gauge">
+              <svg class="gauge-svg" viewBox="0 0 220 140" role="presentation">
+                <path id="gaugeTrackEl" class="gauge-track" d="M20 120 A90 90 0 0 1 200 120"></path>
+                <path id="gaugeArcEl" class="gauge-arc" d="M20 120 A90 90 0 0 1 200 120"></path>
+              </svg>
+              <span id="gradeLetterEl" class="grade-letter">--%</span>
+            </div>
+            <span id="gradeScoreEl" class="grade-score">--/100</span>
+            <span id="gradeReadinessEl" class="grade-label">AI-READY</span>
+            <span id="gradeUrlEl" class="grade-url"></span>
+          </div>
 
-  <!-- ============================================ -->
-  <!-- SCREEN 3: SCORE REPORT                       -->
-  <!-- ============================================ -->
-  <div id="screen-results" class="screen">
-
-    <!-- Overall grade -->
-    <section class="results-grade-section section-white">
-      <div class="grade-container">
-        <div class="grade-circle" id="gradeCircle">
-          <span id="gradeLetterEl" class="grade-letter">--</span>
-          <span id="gradeScoreEl" class="grade-score">--/100</span>
+          <div class="grade-copy">
+            <p id="verdictEl" class="verdict-text"></p>
+            <p class="subtext">Here is exactly where your structured data falls short and what to fix first.</p>
+          </div>
         </div>
-        <span class="grade-label">Your Schema Score</span>
-        <span id="gradeUrlEl" class="grade-url"></span>
-      </div>
 
-      <div class="centered" style="margin-bottom: var(--space-md);">
-        <p id="verdictEl" class="verdict-text"></p>
-        <p class="subtext">Here's exactly where your structured data falls short and what to fix first.</p>
-      </div>
-
-      <!-- 7 Dimension scores -->
-      <div class="dimensions-card">
-        <div class="dimensions-header">
-          <p class="section-label">Score by Dimension</p>
+        <div class="dimensions-card">
+          <div class="dimensions-header">
+            <p class="section-label">Score by Dimension</p>
+          </div>
+          <div id="dimensionsContainer" class="dimensions"></div>
         </div>
-        <div id="dimensionsContainer" class="dimensions"></div>
-      </div>
-    </section>
+      </section>
 
-    <hr class="section-divider">
+      <section class="results-gaps-section">
+        <div class="section-copy">
+          <h3 class="text-accent">What is <span class="text-primary">missing</span> from your schema</h3>
+          <p>We identified issues affecting search visibility. Here are the gaps with the biggest impact.</p>
+        </div>
 
-    <!-- Gap analysis -->
-    <section class="results-gaps-section section-off-white">
-      <div class="centered" style="margin-bottom: 0;">
-        <h3>What's <span class="gradient-text">missing</span> from your schema</h3>
-        <p>We identified issues affecting your search visibility. Here are the ones with the biggest impact.</p>
-      </div>
-
-      <div id="gapsContainer" class="gap-grid"></div>
-
-      <div style="text-align: center; margin-top: var(--space-sm);">
+        <div id="gapsContainer" class="gap-grid"></div>
         <p id="gapsMore" class="gaps-more-text" style="display: none;"></p>
-      </div>
-    </section>
+      </section>
 
-    <hr class="section-divider">
+      <section class="results-fixplan-section">
+        <div class="section-copy">
+          <h3>Your prioritized fix plan</h3>
+          <p>Unlock the implementation roadmap with estimated impact, effort, and ordering.</p>
+        </div>
 
-    <!-- ============================================ -->
-    <!-- SCREEN 4: FIX PLAN (GATED) + CTA             -->
-    <!-- ============================================ -->
-
-    <section class="results-fixplan-section section-off-white">
-      <div class="gated-container">
-        <div class="gated-content">
-          <!-- Agent-populated fix items -->
-          <div id="fixPlanContainer"></div>
-          <!-- Static teaser items to fill the blurred area -->
-          <div class="fix-teaser-extras">
-            <div class="fix-item">
-              <div class="fix-number">6</div>
-              <div>
-                <h4>Implementation timeline and priority matrix</h4>
-                <p>Estimated effort per fix, ordered by impact-to-effort ratio. Includes quick wins you can deploy today and longer-term improvements to schedule.</p>
+        <div class="gated-container">
+          <div class="gated-content">
+            <div id="fixPlanContainer"></div>
+            <div class="fix-teaser-extras">
+              <div class="fix-item">
+                <div class="fix-number">6</div>
+                <div>
+                  <h4>Implementation timeline and priority matrix</h4>
+                  <p>Estimated effort per fix, ordered by impact-to-effort ratio.</p>
+                </div>
               </div>
-            </div>
-            <div class="fix-item">
-              <div class="fix-number">7</div>
-              <div>
-                <h4>Rich result eligibility assessment</h4>
-                <p>Which Google rich results your pages qualify for once fixes are applied, including FAQ accordions, star ratings, and sitelinks with expected CTR uplift.</p>
+              <div class="fix-item">
+                <div class="fix-number">7</div>
+                <div>
+                  <h4>Rich result eligibility assessment</h4>
+                  <p>Identify the rich results your pages can qualify for after fixes.</p>
+                </div>
               </div>
-            </div>
-            <div class="fix-item">
-              <div class="fix-number">8</div>
-              <div>
-                <h4>AI engine visibility projection</h4>
-                <p>How these fixes improve your chances of appearing in ChatGPT, Gemini, and Perplexity answers when buyers search for solutions in your category.</p>
+              <div class="fix-item">
+                <div class="fix-number">8</div>
+                <div>
+                  <h4>AI engine visibility projection</h4>
+                  <p>Estimate lift in ChatGPT, Gemini, and Perplexity discoverability.</p>
+                </div>
               </div>
-            </div>
-            <div class="fix-item">
-              <div class="fix-number">9</div>
-              <div>
-                <h4>Competitor schema gap analysis</h4>
-                <p>Side-by-side comparison of your structured data against the top 3 competitors in your space, with specific areas where you can overtake them.</p>
+              <div class="fix-item">
+                <div class="fix-number">9</div>
+                <div>
+                  <h4>Competitor schema gap analysis</h4>
+                  <p>Compare your markup against top competitors and spot easy wins.</p>
+                </div>
               </div>
-            </div>
-            <div class="fix-item">
-              <div class="fix-number">10</div>
-              <div>
-                <h4>Projected score after implementation</h4>
-                <p>Your estimated score improvement after each phase of fixes, so you can track progress and report impact to stakeholders.</p>
+              <div class="fix-item">
+                <div class="fix-number">10</div>
+                <div>
+                  <h4>Projected score after implementation</h4>
+                  <p>Track expected score improvement as each phase goes live.</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="gated-overlay">
-          <div class="gated-overlay-inner">
-            <div class="gated-lock-icon">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <div class="gated-overlay">
+            <div class="gated-overlay-inner">
+              <h3>Your full fix plan is ready</h3>
+              <p>Get all 10 prioritized fixes with impact estimates and implementation guidance.</p>
+              <button class="btn-secondary btn-unlock" data-cta="book">Unlock Fix Plan</button>
+              <span class="gated-footnote">Free 15-minute review. No commitment.</span>
             </div>
-            <h3>Your full fix plan is ready</h3>
-            <p>10 prioritized fixes with estimated impact scores, implementation guidance, competitor benchmarks, and projected score improvement.</p>
-            <button class="btn-primary btn-unlock" data-cta="book">Unlock Fix Plan &rarr;</button>
-            <span class="gated-footnote">Free 15-minute review. No commitment.</span>
           </div>
         </div>
+      </section>
+
+      <section class="results-cta-section">
+        <div class="cta-box">
+          <h2 class="h1">Ready to close the gap?</h2>
+          <p>Our team can implement your full schema fix plan and monitor your score over time.</p>
+          <div class="cta-group">
+            <button class="btn-primary" data-cta="book">Book a Free Schema Review</button>
+            <button class="link-inline" data-cta="aeo">Explore the AEO Accelerator</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; <span id="currentYear"></span> All Rights Reserved. Schema Rocket&reg; is a registered trademark of <a class="link-inline" href="https://www.brandvious.com" target="_blank" rel="noopener noreferrer">Brandvious, Inc.</a></p>
+  </footer>
+
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <button id="modalCloseBtn" class="modal-close" type="button" aria-label="Close details">×</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <div id="meetingModalBackdrop" class="meeting-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="meetingModalTitle">
+    <div class="meeting-modal">
+      <button id="meetingModalCloseBtn" class="meeting-modal-close" type="button" aria-label="Close meeting modal">×</button>
+      <div class="meeting-modal-left">
+        <h2 id="meetingModalTitle">Schedule a meeting</h2>
+        <p>What we'll cover:</p>
+        <ul>
+          <li>A full schema performance audit</li>
+          <li>Quick-win issue identification</li>
+          <li>A practical remediation roadmap</li>
+          <li>Whether we should implement fixes for you</li>
+        </ul>
+        <div class="meeting-modal-contact">
+          <strong>Kevin Barber</strong>
+          <span>Head of AI Growth @ Lean Labs</span>
+          <span>Helped 200+ B2B companies improve visibility.</span>
+        </div>
       </div>
-    </section>
-
-    <hr class="section-divider">
-
-    <!-- Final CTA -->
-    <section class="results-cta-section">
-      <div class="cta-box">
-        <h3>Ready to close the gap?</h3>
-        <p>Our team can implement your full schema fix plan and monitor your score over time.</p>
-        <button class="btn-cta-primary" data-cta="book">Book a Free Schema Review</button>
-        <span class="btn-cta-secondary" data-cta="aeo">Or explore our AEO Accelerator program &rarr;</span>
+      <div class="meeting-modal-right">
+              <!-- Start of Meetings Embed Script -->
+          <div class="meetings-iframe-container" data-src="https://www.lean-labs.com/meetings/setup/head-of-growth-call?embed=true"></div>
+          <script type="text/javascript" src="https://static.hsappstatic.net/MeetingsEmbed/ex/MeetingsEmbedCode.js"></script>
+        <!-- End of Meetings Embed Script -->
       </div>
-    </section>
+    </div>
+  </div>
 
+<<<<<<< Updated upstream
   </div><!-- /screen-results -->
 
 </div><!-- /page-container -->
@@ -255,5 +283,8 @@
 </div>
 
 <script src="app.js?v=20260519-fix1"></script>
+=======
+  <script src="app.js"></script>
+>>>>>>> Stashed changes
 </body>
 </html>

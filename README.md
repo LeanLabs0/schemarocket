@@ -15,6 +15,24 @@ Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema 
 | `app.js` | State machine plus fetch to backend. Parses JSON into dimension cards, gap cards, and gated fix plan. |
 | `styles.css` | All styling. Currently uses Skittles palette. Brand pass pending. |
 
+## Local dev
+
+```bash
+cp .env.local.example .env.local
+# add SCHEMA_API_KEY and HUBSPOT_TOKEN to .env.local
+npm install
+npm run dev
+```
+
+Then open `http://localhost:5500`.
+
+### HubSpot persistence and retrieval
+
+- On each successful scan, the server upserts a record in HubSpot custom object `2-62805467` using property `url` as the unique website key.
+- Record payload fields written: `url`, `audit_date`, `overall_score`, `overall_grade`, `status`, `report_json`, `external_report_id`.
+- Frontend supports retrieval by query parameter: `?jobID=<external_report_id>`.
+- Example: `http://localhost:5500/?jobID=4b3db6f7-...`
+
 ## Deploy
 
 Manual drag-drop to Netlify for now. No CI wired.

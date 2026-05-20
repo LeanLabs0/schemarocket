@@ -4,8 +4,6 @@
    ============================================================ */
 
 const CONFIG = {
-  API_URL: 'https://factor8-agent-sdk.fly.dev/api/v1/brand-slug/lean-labs/query',
-  API_KEY: '594aa935e360c9bf28f97437c1dddea9',
   CTA_URL: 'https://calendly.com/leanlabs',
   AEO_URL: 'https://www.leanlabs.com/aeo-accelerator',
   BRAND_NAME: 'Lean Labs',
@@ -13,16 +11,17 @@ const CONFIG = {
 
 // ── Grade color map ─────────────────────────────────────────
 const GRADE_COLORS = {
-  'A+': '#6bc950',
-  'A':  '#6bc950',
-  'B+': '#7612fa',
-  'B':  '#7612fa',
-  'C+': '#f59e0b',
-  'C':  '#f59e0b',
-  'D+': '#ff6221',
-  'D':  '#ff6221',
-  'F':  '#ef4444',
+  'A+': '#ffffff',
+  'A':  '#ffffff',
+  'B+': 'rgba(255,255,255,0.9)',
+  'B':  'rgba(255,255,255,0.9)',
+  'C+': 'rgba(255,255,255,0.85)',
+  'C':  'rgba(255,255,255,0.85)',
+  'D+': 'rgba(255,255,255,0.78)',
+  'D':  'rgba(255,255,255,0.78)',
+  'F':  'rgba(255,255,255,0.72)',
 };
+const SESSION_RESULTS_KEY = 'schemarocket:last-results';
 
 // ── State ────────────────────────────────────────────────────
 let state = 'INPUT';  // INPUT | SCANNING | RESULTS | ERROR
@@ -35,20 +34,51 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 // ── Boot ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  const yearEl = $('#currentYear');
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
   $('#scoreBtn').addEventListener('click', handleScore);
+  const scoreAnotherBtn = $('#scoreAnotherBtn');
+  const copyShareLinkBtn = $('#copyShareLinkBtn');
   $('#urlField').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleScore();
   });
+  if (scoreAnotherBtn) {
+    scoreAnotherBtn.addEventListener('click', resetToInput);
+  }
+  if (copyShareLinkBtn) {
+    copyShareLinkBtn.addEventListener('click', copyShareLink);
+  }
+  const modalCloseBtn = $('#modalCloseBtn');
+  const modalBackdrop = $('#modalBackdrop');
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) closeModal();
+    });
+  }
+  const meetingModalBackdrop = $('#meetingModalBackdrop');
+  const meetingModalCloseBtn = $('#meetingModalCloseBtn');
+  if (meetingModalCloseBtn) meetingModalCloseBtn.addEventListener('click', closeMeetingModal);
+  if (meetingModalBackdrop) {
+    meetingModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === meetingModalBackdrop) closeMeetingModal();
+    });
+  }
 
   // CTA buttons
   $$('[data-cta="book"]').forEach((btn) => {
-    btn.addEventListener('click', () => window.open(CONFIG.CTA_URL, '_blank'));
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openMeetingModal();
+    });
   });
   $$('[data-cta="aeo"]').forEach((btn) => {
     btn.addEventListener('click', () => window.open(CONFIG.AEO_URL, '_blank'));
   });
 
-  showScreen('INPUT');
+  updateShareLinkButtonState();
+  restoreInitialView();
 });
 
 // ── Screen transitions ───────────────────────────────────────
@@ -100,10 +130,15 @@ async function handleScore() {
     completeAllSteps();
     await delay(1000);
     renderResults(result, url);
+    const jobID = result?.hubspot?.external_report_id || null;
+    persistResultsSession(result, url, jobID);
+    if (jobID) {
+      setJobIDQueryParam(jobID);
+    }
     showScreen('RESULTS');
   } catch (err) {
     completeAllSteps();
-    showError('Analysis failed: ' + (err.message || 'Unknown error. Check API key and try again.'));
+    showError('Analysis failed: ' + (err.message || 'Unknown error. Check local server/env config and try again.'));
     showScreen('ERROR');
   }
 }
@@ -188,21 +223,32 @@ function hideError() {
   $('#errorMsg').classList.remove('visible');
 }
 
+function resetToInput() {
+  const field = $('#urlField');
+  if (field) {
+    field.value = '';
+    field.focus();
+  }
+  hideError();
+  clearResultsSession();
+  clearJobIDQueryParam();
+  updateShareLinkButtonState();
+  showScreen('INPUT');
+}
+
 // ── API call ─────────────────────────────────────────────────
 async function scoreUrl(url) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min
 
   try {
-    const resp = await fetch(CONFIG.API_URL, {
+    const resp = await fetch('/api/score', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': CONFIG.API_KEY,
       },
       body: JSON.stringify({
-        prompt: `Score this URL: ${url}`,
-        agent: 'schema-score-experience',
+        url,
       }),
       signal: controller.signal,
     });
@@ -264,6 +310,7 @@ function renderResults(data, url) {
   const verdict = overall.verdict || data.verdict || data.summary || '';
   const dimensions = (data.dimensions || data.scores || data.dimension_scores || []).map((d) => ({
     ...d,
+<<<<<<< Updated upstream
     rationale: d.rationale ?? null,
     evidence: d.evidence ?? null,
     remediation: d.remediation ?? null,
@@ -273,9 +320,21 @@ function renderResults(data, url) {
     location: g.location ?? null,
     currentSnippet: g.currentSnippet ?? null,
     fixSnippet: g.fixSnippet ?? null,
+=======
+    rationale: d.rationale ?? d.why ?? null,
+    evidence: d.evidence ?? d.currentSnippet ?? null,
+    remediation: d.remediation ?? d.fixSnippet ?? null,
+  }));
+  const gaps = (data.gaps || data.missing || data.issues || []).map((g) => ({
+    ...g,
+    location: g.location ?? g.where ?? null,
+    currentSnippet: g.currentSnippet ?? g.current ?? g.existing ?? null,
+    fixSnippet: g.fixSnippet ?? g.fix ?? g.recommended ?? null,
+>>>>>>> Stashed changes
   }));
   const fixPlan = data.fix_plan || data.fixes || data.recommendations || [];
 
+  updateFixPlanVisibility(score);
   renderGrade(grade, score, verdict, url);
   renderDimensions(dimensions);
   renderGaps(gaps);
@@ -284,18 +343,30 @@ function renderResults(data, url) {
 
 function renderGrade(grade, score, verdict, url) {
   const gradeStr = String(grade).toUpperCase().trim();
-  $('#gradeLetterEl').textContent = grade;
-  $('#gradeScoreEl').textContent = (typeof score === 'number' ? score : score) + '/100';
+  const fallbackByGrade = {
+    'A+': 98, 'A': 94, 'B+': 88, 'B': 82, 'C+': 74, 'C': 68, 'D+': 58, 'D': 52, 'F': 40,
+  };
+  const scoreNum = Number(score);
+  const resolvedScore = Number.isFinite(scoreNum) ? scoreNum : (fallbackByGrade[gradeStr] ?? fallbackByGrade[gradeStr.charAt(0)] ?? 0);
+  const clampedScore = Math.max(0, Math.min(100, resolvedScore));
+  $('#gradeLetterEl').textContent = `${Math.round(clampedScore)}%`;
+  $('#gradeScoreEl').textContent = 'Visibility Score';
   $('#gradeUrlEl').textContent = url.replace(/^https?:\/\//, '');
   $('#verdictEl').textContent = verdict || 'Analysis complete.';
+  const readiness = $('#gradeReadinessEl');
+  if (readiness) {
+    readiness.textContent = clampedScore >= 80 ? 'AI-READY' : clampedScore >= 55 ? 'NEEDS ENRICHMENT' : 'AT RISK';
+  }
 
-  // Set grade-specific glow color
-  const gradeColor = GRADE_COLORS[gradeStr] || GRADE_COLORS[gradeStr.charAt(0)] || '#7612fa';
-  const circle = $('#gradeCircle');
-  if (circle) {
-    circle.style.setProperty('--grade-color', gradeColor);
-    circle.style.borderColor = gradeColor;
-    circle.style.boxShadow = `0 0 40px ${gradeColor}33, 0 0 80px ${gradeColor}18`;
+  // Set gauge fill for the semi-circle.
+  const gradeColor = GRADE_COLORS[gradeStr] || GRADE_COLORS[gradeStr.charAt(0)] || 'rgba(255,255,255,0.88)';
+  const arc = $('#gaugeArcEl');
+  if (arc) {
+    const length = arc.getTotalLength();
+    const visible = (clampedScore / 100) * length;
+    arc.style.strokeDasharray = `${length}`;
+    arc.style.strokeDashoffset = `${Math.max(length - visible, 0)}`;
+    arc.style.stroke = gradeColor;
   }
 }
 
@@ -339,15 +410,28 @@ function renderDimensions(dims) {
   entries.forEach((dim, index) => {
     const pct = Math.max(0, Math.min(100, Number(dim.pct) || 0));
     const level = pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high';
-    const scoreLabel = dim.max && dim.max !== 100 ? `${dim.score}/${dim.max}` : `${pct}`;
+    const scoreLabel = `${pct}%`;
     const row = document.createElement('div');
     row.className = 'dimension-row';
     row.style.animationDelay = `${index * 0.08}s`;
     row.innerHTML = `
-      <span class="dimension-name">${esc(dim.name)}</span>
+      <div class="dimension-main">
+        <span class="dimension-dot ${level}"></span>
+        <span class="dimension-name">${esc(dim.name)}</span>
+      </div>
       <div class="dimension-bar-track"><div class="dimension-bar-fill ${level}" style="width: ${pct}%;"></div></div>
+<<<<<<< Updated upstream
       <span class="dimension-score">${scoreLabel}</span>
       <span class="dimension-chevron">&rsaquo;</span>
+=======
+      <span class="dimension-score ${level}">${scoreLabel}</span>
+      <span class="dimension-expand-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 7-5 5 5 5"/>
+          <path d="m15 7 5 5-5 5"/>
+        </svg>
+      </span>
+>>>>>>> Stashed changes
     `;
     row.addEventListener('click', () => openDimModal(dim));
     container.appendChild(row);
@@ -372,7 +456,7 @@ function renderGaps(gaps) {
   top4.forEach((gap, i) => {
     const isHigh = (gap.priority || '').toLowerCase() === 'high' || (gap.priority || '').toLowerCase() === 'critical' || i < 2;
     const priority = isHigh ? 'critical' : 'moderate';
-    const label = isHigh ? 'High Impact' : 'Moderate';
+    const label = isHigh ? 'Missing' : 'Needs work';
     const card = document.createElement('div');
     card.className = `gap-card ${priority}`;
     card.innerHTML = `
@@ -448,6 +532,7 @@ function openDimModal(dim) {
     <div class="modal-header">
       <span class="modal-badge">Dimension Detail</span>
     </div>
+<<<<<<< Updated upstream
     <h2>${esc(dim.name)}</h2>
     <div class="modal-score-line">
       <span class="modal-score-pill">${dim.score ?? 0} / ${dim.max ?? 100}</span>
@@ -456,6 +541,16 @@ function openDimModal(dim) {
     <div class="modal-section">
       <div class="modal-section-label">Why this score</div>
       <div class="modal-rationale">${esc(rationale)}</div>
+=======
+    <h2 id="modalTitle">${esc(dim.name)}</h2>
+    <div class="modal-score-line">
+      <span class="modal-score-pill">${esc(String(dim.score ?? 0))} / ${esc(String(dim.max ?? 100))}</span>
+      <span>${esc(String(pct))}% &mdash; ${esc(verdict)}</span>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Why this score</div>
+      <div class="modal-rationale">${esc(String(rationale))}</div>
+>>>>>>> Stashed changes
     </div>
   `;
 
@@ -482,18 +577,29 @@ function openDimModal(dim) {
 
 // ── Modal: gap detail ───────────────────────────────────────
 function openGapModal(gap) {
+<<<<<<< Updated upstream
   const priority = (gap.priority || '').toLowerCase();
   const isHigh = priority === 'high' || priority === 'critical';
   const badgeBg = isHigh ? '#fee2e2' : '#fef3c7';
   const badgeFg = isHigh ? '#dc2626' : '#92400e';
+=======
+  const priority = String(gap.priority || '').toLowerCase();
+  const isHigh = priority === 'high' || priority === 'critical';
+>>>>>>> Stashed changes
   const badgeLabel = isHigh ? 'High Impact Gap' : 'Moderate Gap';
   const isMissing = gap.currentSnippet === null || gap.currentSnippet === undefined;
 
   let html = `
     <div class="modal-header">
+<<<<<<< Updated upstream
       <span class="modal-badge" style="background:${badgeBg}; color:${badgeFg};">${badgeLabel}</span>
     </div>
     <h2>${esc(gap.title || gap.name || 'Gap')}</h2>
+=======
+      <span class="modal-badge ${isHigh ? 'high' : 'moderate'}">${badgeLabel}</span>
+    </div>
+    <h2 id="modalTitle">${esc(gap.title || gap.name || 'Gap')}</h2>
+>>>>>>> Stashed changes
     <p class="modal-description">${esc(gap.description || '')}</p>
   `;
 
@@ -501,7 +607,11 @@ function openGapModal(gap) {
     html += `
       <div class="modal-section">
         <div class="modal-section-label">Where it lives</div>
+<<<<<<< Updated upstream
         <span class="modal-location">&#128205; ${esc(gap.location)}</span>
+=======
+        <span class="modal-location">${esc(gap.location)}</span>
+>>>>>>> Stashed changes
       </div>
     `;
   }
@@ -529,13 +639,22 @@ function openGapModal(gap) {
 
 // ── Modal helpers ───────────────────────────────────────────
 function codeBlock(code, variant) {
+<<<<<<< Updated upstream
   const escaped = String(code)
+=======
+  const raw = typeof code === 'string' ? code : JSON.stringify(code, null, 2);
+  const escaped = raw
+>>>>>>> Stashed changes
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
   return `
     <div class="code-block ${variant}">
+<<<<<<< Updated upstream
       <button class="code-copy" onclick="copyCode(this)">Copy</button>
+=======
+      <button class="code-copy" type="button" onclick="copyCode(this)">Copy</button>
+>>>>>>> Stashed changes
       <code>${escaped}</code>
     </div>
   `;
@@ -551,6 +670,7 @@ function copyCode(btn) {
 }
 
 function showModal(html) {
+<<<<<<< Updated upstream
   document.getElementById('modalContent').innerHTML = html;
   document.getElementById('modalBackdrop').classList.add('open');
 }
@@ -563,3 +683,179 @@ function closeIfBackdrop(e) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
 });
+=======
+  const content = $('#modalContent');
+  const backdrop = $('#modalBackdrop');
+  if (!content || !backdrop) return;
+  content.innerHTML = html;
+  backdrop.classList.add('open');
+  syncBodyScrollLock();
+}
+
+function closeModal() {
+  const backdrop = $('#modalBackdrop');
+  if (!backdrop) return;
+  backdrop.classList.remove('open');
+  syncBodyScrollLock();
+}
+
+function openMeetingModal() {
+  const backdrop = $('#meetingModalBackdrop');
+  if (!backdrop) return;
+  backdrop.classList.add('open');
+  syncBodyScrollLock();
+}
+
+function closeMeetingModal() {
+  const backdrop = $('#meetingModalBackdrop');
+  if (!backdrop) return;
+  backdrop.classList.remove('open');
+  syncBodyScrollLock();
+}
+
+function syncBodyScrollLock() {
+  const hasOpenModal = $('#modalBackdrop')?.classList.contains('open') || $('#meetingModalBackdrop')?.classList.contains('open');
+  document.body.style.overflow = hasOpenModal ? 'hidden' : '';
+}
+
+function updateFixPlanVisibility(score) {
+  const fixPlanSection = document.querySelector('.results-fixplan-section');
+  if (!fixPlanSection) return;
+  const numericScore = Number(score);
+  const isPerfectScore = Number.isFinite(numericScore) && Math.round(numericScore) >= 100;
+  fixPlanSection.style.display = isPerfectScore ? 'none' : '';
+}
+
+function persistResultsSession(data, url, explicitJobID = null) {
+  try {
+    const jobID = explicitJobID || data?.hubspot?.external_report_id || null;
+    sessionStorage.setItem(SESSION_RESULTS_KEY, JSON.stringify({ data, url, jobID }));
+  } catch (_) {
+    // Ignore storage errors (private mode, quota exceeded, etc.)
+  }
+}
+
+function restoreResultsSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_RESULTS_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.data || !parsed.url) return false;
+    renderResults(parsed.data, parsed.url);
+    const field = $('#urlField');
+    if (field) field.value = parsed.url;
+    if (parsed.jobID) setJobIDQueryParam(parsed.jobID);
+    showScreen('RESULTS');
+    return true;
+  } catch (_) {
+    clearResultsSession();
+    return false;
+  }
+}
+
+function clearResultsSession() {
+  try {
+    sessionStorage.removeItem(SESSION_RESULTS_KEY);
+  } catch (_) {
+    // Ignore storage errors.
+  }
+}
+
+async function restoreInitialView() {
+  const jobID = getJobIDQueryParam();
+  if (jobID) {
+    const restored = await restoreReportByJobID(jobID);
+    if (restored) return;
+  }
+  if (!restoreResultsSession()) {
+    showScreen('INPUT');
+  }
+}
+
+async function restoreReportByJobID(jobID) {
+  try {
+    const resp = await fetch(`/api/report?jobID=${encodeURIComponent(jobID)}`);
+    if (!resp.ok) return false;
+    const payload = await resp.json();
+    if (!payload?.report) return false;
+    const displayUrl = payload.report?.url || payload.url || '';
+    renderResults(payload.report, displayUrl);
+    const field = $('#urlField');
+    if (field) field.value = displayUrl;
+    persistResultsSession(payload.report, displayUrl, jobID);
+    showScreen('RESULTS');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function getJobIDQueryParam() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('jobID');
+}
+
+function setJobIDQueryParam(jobID) {
+  if (!jobID) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('jobID', jobID);
+  window.history.replaceState({}, '', url.toString());
+  updateShareLinkButtonState();
+}
+
+function clearJobIDQueryParam() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('jobID');
+  window.history.replaceState({}, '', url.toString());
+  updateShareLinkButtonState();
+}
+
+function updateShareLinkButtonState() {
+  const btn = $('#copyShareLinkBtn');
+  if (!btn) return;
+  const hasJobID = Boolean(getJobIDQueryParam());
+  btn.disabled = !hasJobID;
+}
+
+async function copyShareLink() {
+  const btn = $('#copyShareLinkBtn');
+  if (!btn) return;
+  const jobID = getJobIDQueryParam();
+  if (!jobID) {
+    showButtonFeedback(btn, 'No Link Yet', 1400);
+    return;
+  }
+  const shareUrl = new URL(window.location.href);
+  shareUrl.searchParams.set('jobID', jobID);
+  try {
+    await navigator.clipboard.writeText(shareUrl.toString());
+    showButtonFeedback(btn, 'Copied!', 1200);
+  } catch (_) {
+    showButtonFeedback(btn, 'Copy Failed', 1400);
+  }
+}
+
+function showButtonFeedback(btn, label, durationMs) {
+  const original = btn.dataset.label || btn.textContent;
+  btn.dataset.label = original;
+  btn.textContent = label;
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = original;
+    updateShareLinkButtonState();
+  }, durationMs);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('#meetingModalBackdrop')?.classList.contains('open')) {
+    closeMeetingModal();
+    return;
+  }
+  if ($('#modalBackdrop')?.classList.contains('open')) {
+    closeModal();
+  }
+});
+
+window.copyCode = copyCode;
+>>>>>>> Stashed changes
