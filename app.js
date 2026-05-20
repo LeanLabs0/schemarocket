@@ -118,7 +118,23 @@ async function handleScore() {
   let url = raw;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-  // Reset & go to scanning
+  // First, try resolving from HubSpot by URL to avoid reruns.
+  try {
+    const existing = await resolveReportByUrl(url);
+    if (existing?.found && existing.report) {
+      const resolvedUrl = existing.url || url;
+      const jobID = existing.jobID || null;
+      renderResults(existing.report, resolvedUrl);
+      persistResultsSession(existing.report, resolvedUrl, jobID);
+      if (jobID) setJobIDQueryParam(jobID);
+      showScreen('RESULTS');
+      return;
+    }
+  } catch (_) {
+    // If resolve check fails, continue with fresh scoring flow.
+  }
+
+  // Not found in HubSpot: run a fresh score and persist.
   hideError();
   resetScanSteps();
   $('#scanUrlText').textContent = url.replace(/^https?:\/\//, '');
@@ -141,6 +157,12 @@ async function handleScore() {
     showError('Analysis failed: ' + (err.message || 'Unknown error. Check local server/env config and try again.'));
     showScreen('ERROR');
   }
+}
+
+async function resolveReportByUrl(url) {
+  const resp = await fetch(`/api/resolve?url=${encodeURIComponent(url)}`);
+  if (!resp.ok) return null;
+  return resp.json();
 }
 
 // ── Scanning step timer ──────────────────────────────────────
@@ -261,8 +283,24 @@ async function scoreUrl(url) {
     }
 
     const data = await resp.json();
-    const raw = data.result || data.data?.result || '';
-    return extractJSON(raw);
+    const raw = data?.result ?? data?.data?.result ?? null;
+    let report = null;
+
+    if (raw !== null && raw !== '') {
+      report = extractJSON(raw);
+    } else if (data && typeof data === 'object') {
+      report = data;
+    }
+
+    if (!report || typeof report !== 'object') {
+      throw new Error('No parseable result from API');
+    }
+
+    // Preserve server metadata so we can set and share jobID.
+    if (data?.hubspot) report.hubspot = data.hubspot;
+    if (data?.hubspotError) report.hubspotError = data.hubspotError;
+
+    return report;
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {

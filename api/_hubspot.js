@@ -95,7 +95,15 @@ async function getHubSpotRecordByDomain(domain, env) {
           ],
         },
       ],
-      properties: ['url', 'external_report_id', 'audit_date'],
+      properties: [
+        'url',
+        'report_json',
+        'audit_date',
+        'external_report_id',
+        'overall_score',
+        'overall_grade',
+        'status',
+      ],
       limit: 1,
     }),
   }, env);
@@ -169,6 +177,7 @@ module.exports = {
   getHubSpotEnv,
   normalizeDomain,
   extractReportData,
+  getHubSpotRecordByDomain,
   getHubSpotRecordByJobID,
   upsertHubSpotSchemaReport,
 };
