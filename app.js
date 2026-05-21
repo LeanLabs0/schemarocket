@@ -376,7 +376,7 @@ function renderGrade(grade, score, verdict, url) {
   const resolvedScore = Number.isFinite(scoreNum) ? scoreNum : (fallbackByGrade[gradeStr] ?? fallbackByGrade[gradeStr.charAt(0)] ?? 0);
   const clampedScore = Math.max(0, Math.min(100, resolvedScore));
   $('#gradeLetterEl').textContent = `${Math.round(clampedScore)}%`;
-  $('#gradeScoreEl').textContent = 'Visibility Score';
+  $('#gradeScoreEl').textContent = 'Score';
   $('#gradeUrlEl').textContent = url.replace(/^https?:\/\//, '');
   $('#verdictEl').textContent = verdict || 'Analysis complete.';
   const readiness = $('#gradeReadinessEl');
