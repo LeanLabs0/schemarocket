@@ -865,6 +865,7 @@ button {
 .cta-group {
   display: flex;
   gap: var(--space-4);
+  align-items: center;
   justify-content: center;
 }
 
