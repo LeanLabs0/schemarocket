@@ -1,6 +1,6 @@
 const {
   getHubSpotEnv,
-  normalizeDomain,
+  normalizeLookupUrl,
   extractReportData,
   upsertHubSpotSchemaReport,
 } = require('./_hubspot');
@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
     }
 
     const normalizedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
-    const normalizedDomain = normalizeDomain(normalizedUrl);
+    const normalizedUrlForLookup = normalizeLookupUrl(normalizedUrl);
 
     const upstream = await fetch(API_URL, {
       method: 'POST',
@@ -77,7 +77,7 @@ module.exports = async function handler(req, res) {
       try {
         const hubspot = await upsertHubSpotSchemaReport({
           reportData,
-          normalizedDomain,
+          normalizedUrlForLookup,
           scannedUrl: normalizedUrl,
         }, hubspotEnv);
         responseBody.hubspot = hubspot;

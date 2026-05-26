@@ -12,15 +12,32 @@ function getHubSpotEnv() {
   };
 }
 
-function normalizeDomain(urlValue) {
+function normalizeLookupUrl(urlValue) {
   try {
-    return new URL(urlValue).hostname.toLowerCase().replace(/^www\./, '');
+    const parsed = new URL(urlValue);
+    const protocol = parsed.protocol.toLowerCase() === 'http:' ? 'https:' : parsed.protocol.toLowerCase();
+    const hostname = parsed.hostname.toLowerCase();
+    let pathname = parsed.pathname || '/';
+    if (pathname.length > 1) {
+      pathname = pathname.replace(/\/+$/, '');
+    }
+    return `${protocol}//${hostname}${pathname}`;
   } catch (_) {
-    return String(urlValue)
+    const fallback = String(urlValue)
       .toLowerCase()
       .replace(/^https?:\/\//, '')
-      .replace(/^www\./, '')
-      .split('/')[0];
+      .replace(/^www\./, '');
+    const withProtocol = `https://${fallback}`;
+    try {
+      const parsed = new URL(withProtocol);
+      let pathname = parsed.pathname || '/';
+      if (pathname.length > 1) {
+        pathname = pathname.replace(/\/+$/, '');
+      }
+      return `${parsed.protocol}//${parsed.hostname}${pathname}`;
+    } catch (_) {
+      return withProtocol;
+    }
   }
 }
 
@@ -80,7 +97,7 @@ async function hubSpotFetch(endpoint, options = {}, env) {
   return payload;
 }
 
-async function getHubSpotRecordByDomain(domain, env) {
+async function getHubSpotRecordByUrl(url, env) {
   const payload = await hubSpotFetch(`/crm/v3/objects/${env.objectType}/search`, {
     method: 'POST',
     body: JSON.stringify({
@@ -90,7 +107,7 @@ async function getHubSpotRecordByDomain(domain, env) {
             {
               propertyName: 'url',
               operator: 'EQ',
-              value: domain,
+              value: url,
             },
           ],
         },
@@ -132,16 +149,16 @@ async function getHubSpotRecordByJobID(jobID, env) {
   return payload.results?.[0] || null;
 }
 
-async function upsertHubSpotSchemaReport({ reportData, normalizedDomain, scannedUrl }, env) {
+async function upsertHubSpotSchemaReport({ reportData, normalizedUrlForLookup, scannedUrl }, env) {
   const overall = reportData?.overall || {};
   const score = overall?.score ?? reportData?.score ?? reportData?.score_value ?? reportData?.total_score ?? '';
   const grade = overall?.grade ?? reportData?.grade ?? '';
   const auditDate = reportData?.auditDate || new Date().toISOString();
 
-  const existing = await getHubSpotRecordByDomain(normalizedDomain, env);
+  const existing = await getHubSpotRecordByUrl(normalizedUrlForLookup, env);
   const externalReportId = existing?.properties?.external_report_id || randomUUID();
   const properties = {
-    url: normalizedDomain,
+    url: normalizedUrlForLookup,
     audit_date: String(auditDate),
     overall_score: String(score),
     overall_grade: String(grade),
@@ -169,15 +186,15 @@ async function upsertHubSpotSchemaReport({ reportData, normalizedDomain, scanned
   return {
     recordId: saved.id,
     external_report_id: externalReportId,
-    url: normalizedDomain,
+    url: normalizedUrlForLookup,
   };
 }
 
 module.exports = {
   getHubSpotEnv,
-  normalizeDomain,
+  normalizeLookupUrl,
   extractReportData,
-  getHubSpotRecordByDomain,
+  getHubSpotRecordByUrl,
   getHubSpotRecordByJobID,
   upsertHubSpotSchemaReport,
 };

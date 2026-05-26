@@ -1,7 +1,7 @@
 const {
   getHubSpotEnv,
-  normalizeDomain,
-  getHubSpotRecordByDomain,
+  normalizeLookupUrl,
+  getHubSpotRecordByUrl,
 } = require('./_hubspot');
 
 module.exports = async function handler(req, res) {
@@ -22,11 +22,11 @@ module.exports = async function handler(req, res) {
     }
 
     const normalizedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
-    const normalizedDomain = normalizeDomain(normalizedUrl);
-    const record = await getHubSpotRecordByDomain(normalizedDomain, hubspotEnv);
+    const normalizedUrlForLookup = normalizeLookupUrl(normalizedUrl);
+    const record = await getHubSpotRecordByUrl(normalizedUrlForLookup, hubspotEnv);
 
     if (!record) {
-      return res.status(200).json({ found: false, normalizedDomain });
+      return res.status(200).json({ found: false, normalizedUrl: normalizedUrlForLookup });
     }
 
     const reportJsonRaw = record.properties?.report_json || '{}';
@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
       found: true,
       jobID: record.properties?.external_report_id || '',
       recordId: record.id,
-      url: record.properties?.url || normalizedDomain,
+      url: record.properties?.url || normalizedUrlForLookup,
       auditDate: record.properties?.audit_date || '',
       report,
     });
