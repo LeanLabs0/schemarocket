@@ -169,7 +169,7 @@ async function resolveReportByUrl(url) {
 const STEP_LABELS = [
   'Fetching page and extracting structured data',
   'Classifying page type',
-  'Scoring against 7 quality dimensions',
+  'Scoring the 7 things AI engines check',
   'Comparing against industry benchmarks',
   'Identifying gaps and generating fix plan',
 ];
@@ -396,6 +396,52 @@ function renderGrade(grade, score, verdict, url) {
   }
 }
 
+// Human-readable verdict headlines per dimension, keyed by the canonical
+// rubric name the scorer emits. Green rows read as a win, red rows as a
+// consequence. Falls back to the raw name for unknown dimensions.
+const DIMENSION_HEADLINES = {
+  'code quality': {
+    high: 'Your schema code is clean and valid',
+    mid: 'Your code mostly works, but errors are weakening it',
+    low: 'Code errors are breaking your schema',
+  },
+  'required types present': {
+    high: 'Google sees your company, site, and page',
+    mid: 'Google only sees part of your site',
+    low: "Google can't see most of your site",
+  },
+  'correct type for page': {
+    high: 'Your page tells AI exactly what it is',
+    mid: "Your page isn't fully clear about what it is",
+    low: "AI can't tell what kind of page this is",
+  },
+  'required fields filled': {
+    high: 'Must-have details are complete',
+    mid: 'Some must-have details are missing',
+    low: 'Most must-have details are missing',
+  },
+  'recommended fields filled': {
+    high: 'Trust signals are in place, building your authority',
+    mid: 'Trust signals are missing, costing you authority',
+    low: 'Trust signals are missing, costing you authority',
+  },
+  'entity connections': {
+    high: 'AI can reliably reference your brand',
+    mid: 'AI can only partly reference your brand',
+    low: "AI can't reliably reference your brand",
+  },
+  'ai answer visibility': {
+    high: 'Strong signals for showing up in AI answers',
+    mid: "You're missing some signals AI engines look for",
+    low: "You're missing the signals AI engines look for",
+  },
+};
+
+function dimensionHeadline(name, level) {
+  const copy = DIMENSION_HEADLINES[String(name).toLowerCase().trim()];
+  return (copy && copy[level]) || name;
+}
+
 function renderDimensions(dims) {
   const container = $('#dimensionsContainer');
   container.innerHTML = '';
@@ -436,6 +482,8 @@ function renderDimensions(dims) {
   entries.forEach((dim, index) => {
     const pct = Math.max(0, Math.min(100, Number(dim.pct) || 0));
     const level = pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high';
+    const headline = dimensionHeadline(dim.name, level);
+    dim.headline = headline;
     const scoreLabel = `${pct}%`;
     const row = document.createElement('div');
     row.className = 'dimension-row';
@@ -443,7 +491,7 @@ function renderDimensions(dims) {
     row.innerHTML = `
       <div class="dimension-main">
         <span class="dimension-dot ${level}"></span>
-        <span class="dimension-name">${esc(dim.name)}</span>
+        <span class="dimension-name">${esc(headline)}</span>
       </div>
       <div class="dimension-bar-track"><div class="dimension-bar-fill ${level}" style="width: ${pct}%;"></div></div>
       <span class="dimension-score ${level}">${scoreLabel}</span>
@@ -546,17 +594,17 @@ function delay(ms) {
 // ── Modal: dimension detail ─────────────────────────────────
 function openDimModal(dim) {
   const pct = Number(dim.pct ?? (dim.max ? Math.round((dim.score / dim.max) * 100) : 0));
-  const verdict = pct === 100 ? 'Full marks' : pct >= 70 ? 'Mostly there' : pct >= 40 ? 'Partial credit' : 'Needs work';
+  const verdict = pct === 100 ? 'Perfect score' : pct >= 70 ? 'Mostly there' : pct >= 40 ? 'Halfway there' : 'Needs work';
   const rationale = dim.rationale || 'Detail not available.';
 
   let html = `
     <div class="modal-header">
-      <span class="modal-badge">Dimension Detail</span>
+      <span class="modal-badge">Score Detail</span>
     </div>
-    <h2 id="modalTitle">${esc(dim.name)}</h2>
+    <h2 id="modalTitle">${esc(dim.headline || dim.name)}</h2>
     <div class="modal-score-line">
       <span class="modal-score-pill">${esc(String(dim.score ?? 0))} / ${esc(String(dim.max ?? 100))}</span>
-      <span>${esc(String(pct))}% &mdash; ${esc(verdict)}</span>
+      <span>${esc(String(pct))}% &middot; ${esc(verdict)}</span>
     </div>
     <div class="modal-section">
       <div class="modal-section-label">Why this score</div>
