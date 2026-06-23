@@ -27,6 +27,8 @@ const SESSION_RESULTS_KEY = 'schemarocket:last-results';
 let state = 'INPUT';  // INPUT | SCANNING | RESULTS | ERROR
 let stepTimer = null;
 let currentStep = 0;
+let currentReport = null;   // last rendered report object
+let currentReportUrl = null; // URL associated with currentReport
 
 // ── DOM refs ─────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -47,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scoreAnotherBtn.addEventListener('click', resetToInput);
   }
   if (copyShareLinkBtn) {
-    copyShareLinkBtn.addEventListener('click', copyShareLink);
+    copyShareLinkBtn.addEventListener('click', saveAndShare);
   }
   const modalCloseBtn = $('#modalCloseBtn');
   const modalBackdrop = $('#modalBackdrop');
@@ -118,23 +120,7 @@ async function handleScore() {
   let url = raw;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-  // First, try resolving from HubSpot by URL to avoid reruns.
-  try {
-    const existing = await resolveReportByUrl(url);
-    if (existing?.found && existing.report) {
-      const resolvedUrl = existing.url || url;
-      const jobID = existing.jobID || null;
-      renderResults(existing.report, resolvedUrl);
-      persistResultsSession(existing.report, resolvedUrl, jobID);
-      if (jobID) setJobIDQueryParam(jobID);
-      showScreen('RESULTS');
-      return;
-    }
-  } catch (_) {
-    // If resolve check fails, continue with fresh scoring flow.
-  }
-
-  // Not found in HubSpot: run a fresh score and persist.
+  // Always run a fresh score. Saving to HubSpot is now explicit (Save & Share).
   hideError();
   resetScanSteps();
   $('#scanUrlText').textContent = url.replace(/^https?:\/\//, '');
@@ -145,24 +131,19 @@ async function handleScore() {
     const result = await scoreUrl(url);
     completeAllSteps();
     await delay(1000);
+    currentReport = result;
+    currentReportUrl = url;
     renderResults(result, url);
-    const jobID = result?.hubspot?.external_report_id || null;
-    persistResultsSession(result, url, jobID);
-    if (jobID) {
-      setJobIDQueryParam(jobID);
-    }
+    // Fresh result is unsaved until the user clicks Save & Share.
+    clearJobIDQueryParam();
+    persistResultsSession(result, url, null);
+    updateShareLinkButtonState();
     showScreen('RESULTS');
   } catch (err) {
     completeAllSteps();
     showError('Analysis failed: ' + (err.message || 'Unknown error. Check local server/env config and try again.'));
     showScreen('ERROR');
   }
-}
-
-async function resolveReportByUrl(url) {
-  const resp = await fetch(`/api/resolve?url=${encodeURIComponent(url)}`);
-  if (!resp.ok) return null;
-  return resp.json();
 }
 
 // ── Scanning step timer ──────────────────────────────────────
@@ -252,6 +233,8 @@ function resetToInput() {
     field.focus();
   }
   hideError();
+  currentReport = null;
+  currentReportUrl = null;
   clearResultsSession();
   clearJobIDQueryParam();
   updateShareLinkButtonState();
@@ -712,10 +695,13 @@ function restoreResultsSession() {
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.data || !parsed.url) return false;
+    currentReport = parsed.data;
+    currentReportUrl = parsed.url;
     renderResults(parsed.data, parsed.url);
     const field = $('#urlField');
     if (field) field.value = parsed.url;
     if (parsed.jobID) setJobIDQueryParam(parsed.jobID);
+    updateShareLinkButtonState();
     showScreen('RESULTS');
     return true;
   } catch (_) {
@@ -750,10 +736,13 @@ async function restoreReportByJobID(jobID) {
     const payload = await resp.json();
     if (!payload?.report) return false;
     const displayUrl = payload.report?.url || payload.url || '';
+    currentReport = payload.report;
+    currentReportUrl = displayUrl;
     renderResults(payload.report, displayUrl);
     const field = $('#urlField');
     if (field) field.value = displayUrl;
     persistResultsSession(payload.report, displayUrl, jobID);
+    updateShareLinkButtonState();
     showScreen('RESULTS');
     return true;
   } catch (_) {
@@ -781,39 +770,80 @@ function clearJobIDQueryParam() {
   updateShareLinkButtonState();
 }
 
+function shareLabelForState() {
+  // Once saved (jobID present in URL) the button just copies the link.
+  return getJobIDQueryParam() ? 'Copy Share Link' : 'Save & Share Link';
+}
+
 function updateShareLinkButtonState() {
   const btn = $('#copyShareLinkBtn');
   if (!btn) return;
-  const hasJobID = Boolean(getJobIDQueryParam());
-  btn.disabled = !hasJobID;
+  // Enabled whenever there is a report on screen to save/share.
+  btn.disabled = !currentReport;
+  const labelEl = ensureButtonLabelElement(btn);
+  const resting = shareLabelForState();
+  btn.dataset.label = resting;
+  if (!btn.dataset.feedbackActive) {
+    labelEl.textContent = resting;
+  }
 }
 
-async function copyShareLink() {
+async function saveAndShare() {
   const btn = $('#copyShareLinkBtn');
-  if (!btn) return;
-  const jobID = getJobIDQueryParam();
+  if (!btn || !currentReport) return;
+
+  let jobID = getJobIDQueryParam();
+  const didSave = !jobID;
+
+  // Save to HubSpot on demand if this report hasn't been persisted yet.
   if (!jobID) {
-    showButtonFeedback(btn, 'No Link Yet', 1400);
-    return;
+    const labelEl = ensureButtonLabelElement(btn);
+    btn.dataset.feedbackActive = 'true';
+    btn.disabled = true;
+    labelEl.textContent = 'Saving…';
+    try {
+      const saved = await saveReport(currentReportUrl, currentReport);
+      jobID = saved?.hubspot?.external_report_id || null;
+      if (!jobID) throw new Error('No jobID returned from save');
+      setJobIDQueryParam(jobID);
+      persistResultsSession(currentReport, currentReportUrl, jobID);
+    } catch (_) {
+      delete btn.dataset.feedbackActive;
+      showButtonFeedback(btn, 'Save Failed', 1800);
+      return;
+    }
   }
+
   const shareUrl = new URL(window.location.href);
   shareUrl.searchParams.set('jobID', jobID);
   try {
     await navigator.clipboard.writeText(shareUrl.toString());
-    showButtonFeedback(btn, 'Copied!', 1200);
+    showButtonFeedback(btn, didSave ? 'Saved & Copied!' : 'Copied!', 1600);
   } catch (_) {
-    showButtonFeedback(btn, 'Copy Failed', 1400);
+    showButtonFeedback(btn, didSave ? 'Saved' : 'Copy Failed', 1600);
   }
+}
+
+async function saveReport(url, report) {
+  const resp = await fetch('/api/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, report }),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Save failed ${resp.status}: ${text.slice(0, 200)}`);
+  }
+  return resp.json();
 }
 
 function showButtonFeedback(btn, label, durationMs) {
   const labelEl = ensureButtonLabelElement(btn);
-  const original = btn.dataset.label || labelEl.textContent;
-  btn.dataset.label = original;
+  btn.dataset.feedbackActive = 'true';
   labelEl.textContent = label;
   btn.disabled = true;
   setTimeout(() => {
-    labelEl.textContent = original;
+    delete btn.dataset.feedbackActive;
     updateShareLinkButtonState();
   }, durationMs);
 }

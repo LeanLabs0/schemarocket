@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const scoreHandler = require('./api/score');
 const reportHandler = require('./api/report');
 const resolveHandler = require('./api/resolve');
+const saveHandler = require('./api/save');
 
 dotenv.config({ path: path.join(__dirname, '.env.local') });
 dotenv.config();
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 app.post('/api/score', (req, res) => scoreHandler(req, res));
+app.post('/api/save', (req, res) => saveHandler(req, res));
 app.get('/api/report', (req, res) => reportHandler(req, res));
 app.get('/api/resolve', (req, res) => resolveHandler(req, res));
 

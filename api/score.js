@@ -1,10 +1,3 @@
-const {
-  getHubSpotEnv,
-  normalizeLookupUrl,
-  extractReportData,
-  upsertHubSpotSchemaReport,
-} = require('./_hubspot');
-
 function parseBody(req) {
   if (!req.body) return {};
   if (typeof req.body === 'string') {
@@ -27,7 +20,6 @@ module.exports = async function handler(req, res) {
     const API_URL = process.env.SCHEMA_API_URL;
     const API_KEY = process.env.SCHEMA_API_KEY;
     const AGENT_NAME = process.env.SCHEMA_AGENT || 'schema-score-experience';
-    const hubspotEnv = getHubSpotEnv();
 
     if (!API_URL || !API_KEY) {
       return res.status(500).json({
@@ -42,7 +34,6 @@ module.exports = async function handler(req, res) {
     }
 
     const normalizedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
-    const normalizedUrlForLookup = normalizeLookupUrl(normalizedUrl);
 
     const upstream = await fetch(API_URL, {
       method: 'POST',
@@ -72,19 +63,6 @@ module.exports = async function handler(req, res) {
     }
 
     const responseBody = typeof payload === 'string' ? { result: payload } : payload;
-    const reportData = extractReportData(responseBody);
-    if (hubspotEnv.token && reportData) {
-      try {
-        const hubspot = await upsertHubSpotSchemaReport({
-          reportData,
-          normalizedUrlForLookup,
-          scannedUrl: normalizedUrl,
-        }, hubspotEnv);
-        responseBody.hubspot = hubspot;
-      } catch (hubspotError) {
-        responseBody.hubspotError = hubspotError.message || 'Failed to persist report to HubSpot';
-      }
-    }
 
     return res.status(200).json(responseBody);
   } catch (error) {
