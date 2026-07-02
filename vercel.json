@@ -5,6 +5,6 @@
     }
   },
   "rewrites": [
-    { "source": "/report/:path*", "dest": "/index.html" }
+    { "source": "/report/:path*", "destination": "/index.html" }
   ]
 }
