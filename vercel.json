@@ -3,5 +3,8 @@
     "api/*.js": {
       "maxDuration": 120
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/report/:path*", "dest": "/index.html" }
+  ]
 }

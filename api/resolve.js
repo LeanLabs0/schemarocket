@@ -2,6 +2,7 @@ const {
   getHubSpotEnv,
   normalizeLookupUrl,
   getHubSpotRecordByUrl,
+  auditDateToIso,
 } = require('./_hubspot');
 
 module.exports = async function handler(req, res) {
@@ -42,7 +43,7 @@ module.exports = async function handler(req, res) {
       jobID: record.properties?.external_report_id || '',
       recordId: record.id,
       url: record.properties?.url || normalizedUrlForLookup,
-      auditDate: record.properties?.audit_date || '',
+      auditDate: auditDateToIso(record.properties?.audit_date) || '',
       report,
     });
   } catch (error) {

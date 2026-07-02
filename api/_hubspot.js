@@ -12,32 +12,30 @@ function getHubSpotEnv() {
   };
 }
 
+// Canonical lookup key: strips protocol (incl. typos like "https;//"),
+// drops a leading "www.", forces https, and removes trailing slashes.
+// leanlabs.com, www.leanlabs.com, http(s)://leanlabs.com all collapse to
+// https://leanlabs.com. Must stay in sync with normalizeInputUrl() on client.
 function normalizeLookupUrl(urlValue) {
+  const cleaned = String(urlValue || '')
+    .trim()
+    .replace(/^\s*https?\s*[;:]\s*\/\//i, '')
+    .replace(/^\/+/, '');
+  const withProtocol = `https://${cleaned}`;
   try {
-    const parsed = new URL(urlValue);
-    const protocol = parsed.protocol.toLowerCase() === 'http:' ? 'https:' : parsed.protocol.toLowerCase();
-    const hostname = parsed.hostname.toLowerCase();
+    const parsed = new URL(withProtocol);
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
     let pathname = parsed.pathname || '/';
     if (pathname.length > 1) {
       pathname = pathname.replace(/\/+$/, '');
     }
-    return `${protocol}//${hostname}${pathname}`;
+    return `https://${hostname}${pathname}`;
   } catch (_) {
-    const fallback = String(urlValue)
+    const fallback = cleaned
       .toLowerCase()
-      .replace(/^https?:\/\//, '')
-      .replace(/^www\./, '');
-    const withProtocol = `https://${fallback}`;
-    try {
-      const parsed = new URL(withProtocol);
-      let pathname = parsed.pathname || '/';
-      if (pathname.length > 1) {
-        pathname = pathname.replace(/\/+$/, '');
-      }
-      return `${parsed.protocol}//${parsed.hostname}${pathname}`;
-    } catch (_) {
-      return withProtocol;
-    }
+      .replace(/^www\./, '')
+      .replace(/\/+$/, '');
+    return `https://${fallback}`;
   }
 }
 
@@ -73,6 +71,31 @@ function mapStatusLabel(score, env) {
   if (numericScore >= 80) return env.statusAiReady;
   if (numericScore >= 55) return env.statusNeedsEnrichment;
   return env.statusAtRisk;
+}
+
+// HubSpot datetime props accept UNIX ms; reads may return ms, seconds, or ISO.
+function toHubSpotDatetimeValue(date = new Date()) {
+  const ts = date instanceof Date ? date.getTime() : new Date(date).getTime();
+  return Number.isFinite(ts) ? ts : Date.now();
+}
+
+function parseHubSpotDatetime(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  const s = String(value).trim();
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    return s.length <= 10 ? n * 1000 : n;
+  }
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
+}
+
+function auditDateToIso(value) {
+  const ts = parseHubSpotDatetime(value);
+  return ts === null ? null : new Date(ts).toISOString();
 }
 
 async function hubSpotFetch(endpoint, options = {}, env) {
@@ -153,13 +176,14 @@ async function upsertHubSpotSchemaReport({ reportData, normalizedUrlForLookup, s
   const overall = reportData?.overall || {};
   const score = overall?.score ?? reportData?.score ?? reportData?.score_value ?? reportData?.total_score ?? '';
   const grade = overall?.grade ?? reportData?.grade ?? '';
-  const auditDate = reportData?.auditDate || new Date().toISOString();
+  // Always stamp with the actual save time — never trust auditDate from the report payload.
+  const auditTimestampMs = toHubSpotDatetimeValue();
 
   const existing = await getHubSpotRecordByUrl(normalizedUrlForLookup, env);
   const externalReportId = existing?.properties?.external_report_id || randomUUID();
   const properties = {
     url: normalizedUrlForLookup,
-    audit_date: String(auditDate),
+    audit_date: auditTimestampMs,
     overall_score: String(score),
     overall_grade: String(grade),
     status: mapStatusLabel(score, env),
@@ -187,6 +211,7 @@ async function upsertHubSpotSchemaReport({ reportData, normalizedUrlForLookup, s
     recordId: saved.id,
     external_report_id: externalReportId,
     url: normalizedUrlForLookup,
+    auditDate: new Date(auditTimestampMs).toISOString(),
   };
 }
 
@@ -197,4 +222,6 @@ module.exports = {
   getHubSpotRecordByUrl,
   getHubSpotRecordByJobID,
   upsertHubSpotSchemaReport,
+  parseHubSpotDatetime,
+  auditDateToIso,
 };

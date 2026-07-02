@@ -21,7 +21,7 @@ const GRADE_COLORS = {
   'D':  'rgba(255,255,255,0.78)',
   'F':  'rgba(255,255,255,0.72)',
 };
-const SESSION_RESULTS_KEY = 'schemarocket:last-results';
+const REPORT_ROUTE_PREFIX = '/report/';
 
 // ── State ────────────────────────────────────────────────────
 let state = 'INPUT';  // INPUT | SCANNING | RESULTS | ERROR
@@ -29,6 +29,7 @@ let stepTimer = null;
 let currentStep = 0;
 let currentReport = null;   // last rendered report object
 let currentReportUrl = null; // URL associated with currentReport
+let currentAuditDate = null; // ISO date of when currentReport was generated
 
 // ── DOM refs ─────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -40,16 +41,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
   $('#scoreBtn').addEventListener('click', handleScore);
-  const scoreAnotherBtn = $('#scoreAnotherBtn');
-  const copyShareLinkBtn = $('#copyShareLinkBtn');
+  const rerunBtn = $('#rerunBtn');
+  const shareBtn = $('#shareBtn');
   $('#urlField').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleScore();
   });
-  if (scoreAnotherBtn) {
-    scoreAnotherBtn.addEventListener('click', resetToInput);
+  if (rerunBtn) {
+    rerunBtn.addEventListener('click', handleRerun);
   }
-  if (copyShareLinkBtn) {
-    copyShareLinkBtn.addEventListener('click', saveAndShare);
+  if (shareBtn) {
+    shareBtn.addEventListener('click', shareReport);
   }
   const modalCloseBtn = $('#modalCloseBtn');
   const modalBackdrop = $('#modalBackdrop');
@@ -79,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => window.open(CONFIG.AEO_URL, '_blank'));
   });
 
-  updateShareLinkButtonState();
+  updateToolbarState();
   restoreInitialView();
 });
 
@@ -115,35 +116,124 @@ async function handleScore() {
   const urlField = $('#urlField');
   const raw = urlField.value.trim();
   if (!raw) { urlField.focus(); return; }
+  // Cache-aware: reuse a fresh cached report if one exists, else generate.
+  await showReportForUrl(normalizeInputUrl(raw), { force: false });
+}
 
-  // Basic URL normalization
-  let url = raw;
-  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+// ── Rerun button ─────────────────────────────────────────────
+async function handleRerun() {
+  if (!currentReportUrl) return;
+  await showReportForUrl(currentReportUrl, { force: true });
+}
 
-  // Always run a fresh score. Saving to HubSpot is now explicit (Save & Share).
-  hideError();
-  resetScanSteps();
-  $('#scanUrlText').textContent = url.replace(/^https?:\/\//, '');
-  showScreen('SCANNING');
-  startStepTimer();
-
+// ── Report orchestration ─────────────────────────────────────
+// Cache-aware entry point used by the score button and ?run= param.
+// Reuses an existing HubSpot report whenever the URL already has one
+// (no expiry) so we never burn credits re-running. `force: true` (Rerun)
+// always regenerates.
+async function showReportForUrl(url, { force = false } = {}) {
   try {
-    const result = await scoreUrl(url);
-    completeAllSteps();
-    await delay(1000);
-    currentReport = result;
-    currentReportUrl = url;
-    renderResults(result, url);
-    // Fresh result is unsaved until the user clicks Save & Share.
-    clearJobIDQueryParam();
-    persistResultsSession(result, url, null);
-    updateShareLinkButtonState();
-    showScreen('RESULTS');
+    if (!force) {
+      const cached = await fetchCachedReport(url);
+      if (cached?.found && cached.report) {
+        showReport(cached.report, cached.url || url, cached.auditDate);
+        return;
+      }
+    }
+    await generateAndSave(url);
   } catch (err) {
     completeAllSteps();
     showError('Analysis failed: ' + (err.message || 'Unknown error. Check local server/env config and try again.'));
     showScreen('ERROR');
   }
+}
+
+// Backward-compat: old share links use ?jobID={external_report_id}. Look the
+// record up directly by jobID and render whatever is stored (any age) — this
+// never generates a fresh score, it's purely a fetch of the old result.
+async function loadReportByJobID(jobID) {
+  const resp = await fetch(`/api/report?jobID=${encodeURIComponent(jobID)}`);
+  if (!resp.ok) return false;
+  const payload = await resp.json();
+  if (!payload?.report) return false;
+  showReport(payload.report, payload.url || '', payload.auditDate);
+  return true;
+}
+
+// Direct navigation to /report/{url}: always show the cached report if one
+// exists (regardless of age), so we never burn tokens just by visiting.
+// Only generate when nothing is cached at all.
+async function loadReportRoute(url) {
+  try {
+    const cached = await fetchCachedReport(url);
+    if (cached?.found && cached.report) {
+      showReport(cached.report, cached.url || url, cached.auditDate);
+      return;
+    }
+    await generateAndSave(url);
+  } catch (err) {
+    completeAllSteps();
+    showError('Could not load this report: ' + (err.message || 'Unknown error.'));
+    showScreen('ERROR');
+  }
+}
+
+// Runs a fresh score, persists it to HubSpot, then renders it.
+async function generateAndSave(url) {
+  hideError();
+  resetScanSteps();
+  $('#scanUrlText').textContent = displayHost(url);
+  showScreen('SCANNING');
+  startStepTimer();
+
+  const result = await scoreUrl(url);
+  completeAllSteps();
+  await delay(800);
+
+  let finalUrl = url;
+  let auditDate = new Date().toISOString();
+  try {
+    const saved = await saveReport(url, result);
+    if (saved?.hubspot?.url) finalUrl = saved.hubspot.url;
+    if (saved?.hubspot?.auditDate) auditDate = saved.hubspot.auditDate;
+  } catch (_) {
+    // Still show the report even if persistence fails.
+  }
+  showReport(result, finalUrl, auditDate);
+}
+
+function showReport(report, url, auditDate) {
+  currentReport = report;
+  currentReportUrl = url;
+  currentAuditDate = auditDate || null;
+  renderResults(report, url);
+  const field = $('#urlField');
+  if (field) field.value = url;
+  setReportRoute(url);
+  updateLastRunText(auditDate);
+  updateToolbarState();
+  showScreen('RESULTS');
+}
+
+async function fetchCachedReport(url) {
+  const resp = await fetch(`/api/resolve?url=${encodeURIComponent(url)}`);
+  if (!resp.ok) return null;
+  return resp.json();
+}
+
+// HubSpot date/datetime props may come back as epoch ms, epoch seconds, or ISO.
+function parseAuditTs(value) {
+  if (value === null || value === undefined || value === '') return NaN;
+  if (typeof value === 'number') {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  const s = String(value).trim();
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    return s.length <= 10 ? n * 1000 : n;
+  }
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : NaN;
 }
 
 // ── Scanning step timer ──────────────────────────────────────
@@ -226,19 +316,56 @@ function hideError() {
   $('#errorMsg').classList.remove('visible');
 }
 
-function resetToInput() {
-  const field = $('#urlField');
-  if (field) {
-    field.value = '';
-    field.focus();
+// ── URL + route helpers ──────────────────────────────────────
+// Canonicalize user input so leanlabs.com, www.leanlabs.com,
+// http(s)://leanlabs.com and common protocol typos all map to one URL.
+// Must stay in sync with normalizeLookupUrl() on the server.
+function normalizeInputUrl(raw) {
+  const cleaned = String(raw || '')
+    .trim()
+    .replace(/^\s*https?\s*[;:]\s*\/\//i, '') // strip http(s):// and typos like "https;//"
+    .replace(/^\/+/, '');
+  const withProtocol = `https://${cleaned}`;
+  try {
+    const parsed = new URL(withProtocol);
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    let pathname = parsed.pathname || '/';
+    if (pathname.length > 1) pathname = pathname.replace(/\/+$/, '');
+    return `https://${hostname}${pathname}${parsed.search}`;
+  } catch (_) {
+    const fallback = cleaned.toLowerCase().replace(/^www\./, '').replace(/\/+$/, '');
+    return `https://${fallback}`;
   }
-  hideError();
-  currentReport = null;
-  currentReportUrl = null;
-  clearResultsSession();
-  clearJobIDQueryParam();
-  updateShareLinkButtonState();
-  showScreen('INPUT');
+}
+
+function displayHost(url) {
+  return String(url).replace(/^https?:\/\//i, '');
+}
+
+// Full URL → clean /report/{host+path} route (protocol stripped).
+function urlToReportPath(url) {
+  const bare = String(url).replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  return REPORT_ROUTE_PREFIX + bare;
+}
+
+// Current /report/{...} path → full https URL (or null when not on a report route).
+function getReportUrlFromPath() {
+  const path = window.location.pathname;
+  if (!path.startsWith(REPORT_ROUTE_PREFIX)) return null;
+  let rest = path.slice(REPORT_ROUTE_PREFIX.length);
+  if (!rest) return null;
+  try { rest = decodeURIComponent(rest); } catch (_) { /* keep raw */ }
+  rest = rest.replace(/\/+$/, '');
+  if (!rest) return null;
+  return /^https?:\/\//i.test(rest) ? rest : `https://${rest}`;
+}
+
+function setReportRoute(url) {
+  if (!url || !String(url).trim()) return;
+  const target = window.location.origin + urlToReportPath(url);
+  if (window.location.href !== target) {
+    window.history.replaceState({}, '', target);
+  }
 }
 
 // ── API call ─────────────────────────────────────────────────
@@ -728,147 +855,75 @@ function updateFixPlanVisibility(score) {
   fixPlanSection.style.display = isPerfectScore ? 'none' : '';
 }
 
-function persistResultsSession(data, url, explicitJobID = null) {
-  try {
-    const jobID = explicitJobID || data?.hubspot?.external_report_id || null;
-    sessionStorage.setItem(SESSION_RESULTS_KEY, JSON.stringify({ data, url, jobID }));
-  } catch (_) {
-    // Ignore storage errors (private mode, quota exceeded, etc.)
-  }
-}
-
-function restoreResultsSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_RESULTS_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.data || !parsed.url) return false;
-    currentReport = parsed.data;
-    currentReportUrl = parsed.url;
-    renderResults(parsed.data, parsed.url);
-    const field = $('#urlField');
-    if (field) field.value = parsed.url;
-    if (parsed.jobID) setJobIDQueryParam(parsed.jobID);
-    updateShareLinkButtonState();
-    showScreen('RESULTS');
-    return true;
-  } catch (_) {
-    clearResultsSession();
-    return false;
-  }
-}
-
-function clearResultsSession() {
-  try {
-    sessionStorage.removeItem(SESSION_RESULTS_KEY);
-  } catch (_) {
-    // Ignore storage errors.
-  }
-}
-
+// ── Initial view routing ─────────────────────────────────────
+// Priority: /report/{url} path → ?run={url} param → homepage input.
 async function restoreInitialView() {
-  const jobID = getJobIDQueryParam();
-  if (jobID) {
-    const restored = await restoreReportByJobID(jobID);
-    if (restored) return;
-  }
-  if (!restoreResultsSession()) {
-    showScreen('INPUT');
-  }
-}
-
-async function restoreReportByJobID(jobID) {
-  try {
-    const resp = await fetch(`/api/report?jobID=${encodeURIComponent(jobID)}`);
-    if (!resp.ok) return false;
-    const payload = await resp.json();
-    if (!payload?.report) return false;
-    const displayUrl = payload.report?.url || payload.url || '';
-    currentReport = payload.report;
-    currentReportUrl = displayUrl;
-    renderResults(payload.report, displayUrl);
-    const field = $('#urlField');
-    if (field) field.value = displayUrl;
-    persistResultsSession(payload.report, displayUrl, jobID);
-    updateShareLinkButtonState();
-    showScreen('RESULTS');
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function getJobIDQueryParam() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('jobID');
-}
 
-function setJobIDQueryParam(jobID) {
-  if (!jobID) return;
-  const url = new URL(window.location.href);
-  url.searchParams.set('jobID', jobID);
-  window.history.replaceState({}, '', url.toString());
-  updateShareLinkButtonState();
-}
-
-function clearJobIDQueryParam() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete('jobID');
-  window.history.replaceState({}, '', url.toString());
-  updateShareLinkButtonState();
-}
-
-function shareLabelForState() {
-  // Once saved (jobID present in URL) the button just copies the link.
-  return getJobIDQueryParam() ? 'Copy Share Link' : 'Save & Share Link';
-}
-
-function updateShareLinkButtonState() {
-  const btn = $('#copyShareLinkBtn');
-  if (!btn) return;
-  // Enabled whenever there is a report on screen to save/share.
-  btn.disabled = !currentReport;
-  const labelEl = ensureButtonLabelElement(btn);
-  const resting = shareLabelForState();
-  btn.dataset.label = resting;
-  if (!btn.dataset.feedbackActive) {
-    labelEl.textContent = resting;
-  }
-}
-
-async function saveAndShare() {
-  const btn = $('#copyShareLinkBtn');
-  if (!btn || !currentReport) return;
-
-  let jobID = getJobIDQueryParam();
-  const didSave = !jobID;
-
-  // Save to HubSpot on demand if this report hasn't been persisted yet.
-  if (!jobID) {
-    const labelEl = ensureButtonLabelElement(btn);
-    btn.dataset.feedbackActive = 'true';
-    btn.disabled = true;
-    labelEl.textContent = 'Saving…';
+  // 1. Legacy ?jobID= links — fetch the stored result directly (never re-runs).
+  const jobID = params.get('jobID');
+  if (jobID && jobID.trim()) {
     try {
-      const saved = await saveReport(currentReportUrl, currentReport);
-      jobID = saved?.hubspot?.external_report_id || null;
-      if (!jobID) throw new Error('No jobID returned from save');
-      setJobIDQueryParam(jobID);
-      persistResultsSession(currentReport, currentReportUrl, jobID);
-    } catch (_) {
-      delete btn.dataset.feedbackActive;
-      showButtonFeedback(btn, 'Save Failed', 1800);
-      return;
-    }
+      if (await loadReportByJobID(jobID.trim())) return;
+    } catch (_) { /* fall through to other resolution paths */ }
   }
 
-  const shareUrl = new URL(window.location.href);
-  shareUrl.searchParams.set('jobID', jobID);
+  // 2. /report/{url} — pull the cached report from HubSpot (any age).
+  const reportUrl = getReportUrlFromPath();
+  if (reportUrl) {
+    await loadReportRoute(reportUrl);
+    return;
+  }
+
+  // 3. ?run={url} — auto-run (cache-aware, reuses a fresh cached report).
+  const runParam = params.get('run');
+  if (runParam && runParam.trim()) {
+    await showReportForUrl(normalizeInputUrl(runParam), { force: false });
+    return;
+  }
+
+  showScreen('INPUT');
+}
+
+// Enable the rerun/share buttons only when a report is on screen.
+function updateToolbarState() {
+  const hasReport = Boolean(currentReport);
+  const rerunBtn = $('#rerunBtn');
+  const shareBtn = $('#shareBtn');
+  if (rerunBtn) rerunBtn.disabled = !hasReport;
+  if (shareBtn) shareBtn.disabled = !hasReport;
+}
+
+function updateLastRunText(auditDate) {
+  const el = $('#lastRunText');
+  if (!el) return;
+  const ts = parseAuditTs(auditDate);
+  if (!Number.isFinite(ts)) {
+    el.textContent = '';
+    return;
+  }
+  const formatted = new Date(ts).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  }).replace(/\b(am|pm)\b/gi, (m) => m.toUpperCase());
+  el.textContent = `Last run ${formatted}`;
+}
+
+// Copies the shareable /report/{url} link for the current report.
+async function shareReport() {
+  const btn = $('#shareBtn');
+  if (!btn || !currentReportUrl) return;
+  const shareUrl = window.location.origin + urlToReportPath(currentReportUrl);
   try {
-    await navigator.clipboard.writeText(shareUrl.toString());
-    showButtonFeedback(btn, didSave ? 'Saved & Copied!' : 'Copied!', 1600);
+    await navigator.clipboard.writeText(shareUrl);
+    showButtonFeedback(btn, 'Link Copied!', 1500);
   } catch (_) {
-    showButtonFeedback(btn, didSave ? 'Saved' : 'Copy Failed', 1600);
+    showButtonFeedback(btn, 'Copy Failed', 1500);
   }
 }
 
@@ -887,12 +942,14 @@ async function saveReport(url, report) {
 
 function showButtonFeedback(btn, label, durationMs) {
   const labelEl = ensureButtonLabelElement(btn);
+  const resting = btn.dataset.label || labelEl.textContent;
   btn.dataset.feedbackActive = 'true';
   labelEl.textContent = label;
   btn.disabled = true;
   setTimeout(() => {
     delete btn.dataset.feedbackActive;
-    updateShareLinkButtonState();
+    labelEl.textContent = resting;
+    updateToolbarState();
   }, durationMs);
 }
 

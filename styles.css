@@ -450,12 +450,26 @@ button {
 }
 
 .results-toolbar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.results-toolbar-buttons {
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.btn-share-link[disabled] {
+.last-run-text {
+  font-size: var(--text-xs);
+  color: var(--color-text-disabled);
+  white-space: nowrap;
+}
+
+.btn-share-link[disabled],
+#rerunBtn[disabled] {
   opacity: 0.56;
   cursor: not-allowed;
 }
@@ -1262,7 +1276,16 @@ button {
 
   .results-toolbar-actions {
     width: 100%;
+    align-items: stretch;
+  }
+
+  .results-toolbar-buttons {
+    width: 100%;
     flex-direction: column;
+  }
+
+  .last-run-text {
+    text-align: center;
   }
 
   .dimension-row {
