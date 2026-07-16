@@ -9,6 +9,31 @@ const CONFIG = {
   BRAND_NAME: 'Lean Labs',
 };
 
+// ── Report "Next steps" cards ────────────────────────────────
+// Base destination per card. EDWARD: confirm/fill these before deploy.
+const NEXT_STEPS = {
+  'schema-rocket': '',                                                            // <<< FILL: HubSpot redirect for Schema Rocket
+  'breeze-bundle': 'https://leanlabs0.github.io/breeze-agent-bundle-prototype/',  // swap to prod /breeze-agent-bundle when live
+  'aeo-baseline':  'https://www.aeobaseline.com/',
+};
+const UTM = { source: 'schemascore.ai', medium: 'report', content: 'next_steps' };
+const NEXT_STEP_CAMPAIGN = {
+  'schema-rocket': 'schema_rocket',
+  'breeze-bundle': 'breeze_bundle',
+  'aeo-baseline':  'aeo_baseline',
+};
+
+// Append UTM params to a base URL. Returns null for a blank/unset base.
+function buildUtmUrl(base, campaign) {
+  if (!base) return null;
+  const u = new URL(base);
+  u.searchParams.set('utm_source', UTM.source);
+  u.searchParams.set('utm_medium', UTM.medium);
+  u.searchParams.set('utm_campaign', campaign);
+  u.searchParams.set('utm_content', UTM.content);
+  return u.toString();
+}
+
 // ── Grade color map ─────────────────────────────────────────
 const GRADE_COLORS = {
   'A+': '#ffffff',
@@ -78,6 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $$('[data-cta="aeo"]').forEach((btn) => {
     btn.addEventListener('click', () => window.open(CONFIG.AEO_URL, '_blank'));
+  });
+
+  // Wire the "Next steps" cards with UTM-tagged hrefs. A blank base URL
+  // leaves the card visibly unlinked rather than shipping a dead link.
+  $$('[data-nextstep]').forEach((a) => {
+    const key = a.getAttribute('data-nextstep');
+    const href = buildUtmUrl(NEXT_STEPS[key], NEXT_STEP_CAMPAIGN[key]);
+    if (href) {
+      a.href = href;
+    } else {
+      a.removeAttribute('href');
+      a.setAttribute('aria-disabled', 'true');
+      a.classList.add('is-unlinked');
+    }
   });
 
   updateToolbarState();
