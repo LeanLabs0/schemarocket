@@ -5,7 +5,7 @@
 
 const CONFIG = {
   CTA_URL: 'https://calendly.com/leanlabs',
-  AEO_URL: 'https://www.leanlabs.com/aeo-accelerator',
+  AEO_URL: 'https://www.leanlabs.com/aeo-accelerator?utm_source=schemascore.ai&utm_medium=report&utm_campaign=schemascore.ai&utm_content=explore_aeo',
   BRAND_NAME: 'Lean Labs',
 };
 
@@ -13,7 +13,7 @@ const CONFIG = {
 // Base destination per card. EDWARD: confirm/fill these before deploy.
 const NEXT_STEPS = {
   'schema-rocket': '',                                                            // <<< FILL: HubSpot redirect for Schema Rocket
-  'breeze-bundle': 'https://leanlabs0.github.io/breeze-agent-bundle-prototype/',  // swap to prod /breeze-agent-bundle when live
+  'breeze-bundle': 'https://www.leanlabs.com/solutions/hubspot-breeze-agents-free-bundle#bundle-form',
   'aeo-baseline':  'https://www.aeobaseline.com/',
 };
 const UTM = { source: 'schemascore.ai', medium: 'report', content: 'next_steps' };
@@ -681,7 +681,7 @@ function renderGaps(gaps) {
       <div class="gap-priority ${priority}">${label}</div>
       <h4>${esc(gap.title || gap.name || gap.issue || 'Issue ' + (i + 1))}</h4>
       <p>${esc(gap.description || gap.detail || gap.details || '')}</p>
-      <div class="gap-cta">View fix code &rarr;</div>
+      <div class="gap-cta">View fix code <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right-icon lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg></div>
     `;
     card.addEventListener('click', () => openGapModal(gap));
     container.appendChild(card);
