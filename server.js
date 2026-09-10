@@ -20,8 +20,11 @@ app.post('/api/save', (req, res) => saveHandler(req, res));
 app.get('/api/report', (req, res) => reportHandler(req, res));
 app.get('/api/resolve', (req, res) => resolveHandler(req, res));
 
-app.use((_req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+app.use((req, res) => {
+  if (req.path.startsWith('/report/')) {
+    return res.sendFile(path.join(__dirname, 'index.html'));
+  }
+  res.status(404).sendFile(path.join(__dirname, '404.html'));
 });
 
 app.listen(PORT, () => {
