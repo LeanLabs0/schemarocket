@@ -2,7 +2,7 @@
 
 Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis, a fix plan that hands off to AEO Genie (`aeogenie.com/?url=<scanned url>`), and a bottom CTA that books an AEO strategy call.
 
-**Live:** https://schemarocket.netlify.app/
+**Live:** https://schemascore.ai (Vercel, deploys `main`; the old schemarocket.netlify.app copy is stale)
 **Backend repo:** [factor8-agent-sdk](https://github.com/LeanLabs0/factor8-agent-sdk)
 **Backend URL:** `https://factor8-agent-sdk.fly.dev/api/v1/brand-slug/lean-labs/query`
 **Status:** V1 prototype. Design pass and dev polish pending.
