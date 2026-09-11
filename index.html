@@ -145,68 +145,34 @@
       <section class="results-fixplan-section">
         <div class="section-copy">
           <h3>Your prioritized fix plan</h3>
-          <p>Unlock the implementation roadmap with estimated impact, effort, and ordering.</p>
+          <p>The top schema fixes for this page, in order. The rest of your AEO moves come from the AEO Genie.</p>
         </div>
 
-        <div class="gated-container">
-          <div class="gated-content">
-            <div id="fixPlanContainer"></div>
-            <div class="fix-teaser-extras">
-              <div class="fix-item">
-                <div class="fix-number">6</div>
-                <div>
-                  <h4>Implementation timeline and priority matrix</h4>
-                  <p>Estimated effort per fix, ordered by impact-to-effort ratio.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">7</div>
-                <div>
-                  <h4>Rich result eligibility assessment</h4>
-                  <p>Identify the rich results your pages can qualify for after fixes.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">8</div>
-                <div>
-                  <h4>AI engine visibility projection</h4>
-                  <p>Estimate lift in ChatGPT, Gemini, and Perplexity discoverability.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">9</div>
-                <div>
-                  <h4>Competitor schema gap analysis</h4>
-                  <p>Compare your markup against top competitors and spot easy wins.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">10</div>
-                <div>
-                  <h4>Projected score after implementation</h4>
-                  <p>Track expected score improvement as each phase goes live.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <p id="fixPlanStatus" class="fix-plan-status" hidden></p>
+        <div id="fixPlanContainer" class="fix-plan-list"></div>
+        <p id="fixPlanMore" class="fix-plan-more" hidden></p>
 
-          <div class="gated-overlay">
-            <div class="gated-overlay-inner">
-              <h3>Your full fix plan is ready</h3>
-              <p>Get all 10 prioritized fixes with impact estimates and implementation guidance.</p>
-              <button class="btn-secondary btn-unlock" data-cta="book">Unlock Fix Plan</button>
-              <span class="gated-footnote">Free 15-minute review. No commitment.</span>
-            </div>
-          </div>
+        <div class="genie-handoff">
+          <h3>Your next move: run the AEO Genie</h3>
+          <p>Schema is one lever. AEO Genie scores you across ChatGPT, Gemini, Perplexity and Google AI Overview, then gives you the highest-impact moves beyond schema, on-site and off-site, plus a competitor AEO battle card.</p>
+          <ul class="genie-handoff-points">
+            <li>Your AI visibility score</li>
+            <li>10 AEO quick wins, ranked by impact</li>
+            <li>Competitor AEO battle card</li>
+            <li>A citation strategy</li>
+            <li>An AEO money model</li>
+          </ul>
+          <a class="btn-secondary" data-cta="genie" href="https://www.aeogenie.com/?utm_source=schemascore.ai&amp;utm_medium=report&amp;utm_campaign=aeo_genie&amp;utm_content=fix_plan" target="_blank" rel="noopener noreferrer">Run my AEO Genie</a>
+          <span class="gated-footnote" data-genie-footnote>100% free. Opens in a new tab with this URL filled in.</span>
         </div>
       </section>
 
       <section class="results-cta-section">
         <div class="cta-box">
-          <h2 class="h1">Ready to close the gap?</h2>
-          <p>Our team can implement your full schema fix plan and monitor your score over time.</p>
+          <h2 class="h1">Want to be the authority in your buyers' minds, and the name AI recommends?</h2>
+          <p>Schema is step one. Book a call and we will walk through how Lean Labs runs AEO for your brand, from structured data to citations to the pages AI actually reads.</p>
           <div class="cta-group">
-            <button class="btn-primary" data-cta="book">Book a Free Schema Review</button>
+            <button class="btn-primary" data-cta="book">Book an AEO strategy call</button>
             <a class="link-inline" href="https://www.leanlabs.com/solutions/answer-engine-optimization-agency?utm_source=schemascore.ai&amp;utm_medium=report&amp;utm_campaign=schemascore.ai&amp;utm_content=explore_aeo">Explore more AEO tools</a>
           </div>
         </div>
@@ -256,13 +222,13 @@
     <div class="meeting-modal">
       <button id="meetingModalCloseBtn" class="meeting-modal-close" type="button" aria-label="Close meeting modal">×</button>
       <div class="meeting-modal-left">
-        <h2 id="meetingModalTitle">Schedule a meeting</h2>
+        <h2 id="meetingModalTitle">Book an AEO strategy call</h2>
         <p>What we'll cover:</p>
         <ul>
-          <li>A full schema performance audit</li>
-          <li>Quick-win issue identification</li>
-          <li>A practical remediation roadmap</li>
-          <li>Whether we should implement fixes for you</li>
+          <li>Where your brand stands in AI answers today</li>
+          <li>The highest-impact AEO moves for your site, schema included</li>
+          <li>How Lean Labs runs AEO, from structured data to citations</li>
+          <li>Whether we should do it for you</li>
         </ul>
         <div class="meeting-modal-contact">
           <strong>Kevin Barber</strong>
@@ -272,13 +238,14 @@
       </div>
       <div class="meeting-modal-right">
               <!-- Start of Meetings Embed Script -->
-          <div class="meetings-iframe-container" data-src="https://www.lean-labs.com/meetings/setup/head-of-growth-call?embed=true"></div>
+          <div class="meetings-iframe-container" data-src="https://www.lean-labs.com/meetings/setup/aeo-gameplan?embed=true"></div>
           <script type="text/javascript" src="https://static.hsappstatic.net/MeetingsEmbed/ex/MeetingsEmbedCode.js"></script>
         <!-- End of Meetings Embed Script -->
       </div>
     </div>
   </div>
 
+  <script src="/lib/handoff.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
