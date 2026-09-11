@@ -552,7 +552,9 @@ function renderResults(data, url) {
     currentSnippet: g.currentSnippet ?? g.current ?? g.existing ?? null,
     fixSnippet: g.fixSnippet ?? g.fix ?? g.recommended ?? null,
   }));
-  const fixPlan = data.fix_plan || data.fixes || data.recommendations || [];
+  const fixPlan = Handoff.readFixPlan
+    ? Handoff.readFixPlan(data)
+    : (data.fixPlan || data.fix_plan || data.fixes || data.recommendations || []);
 
   updateFixPlanVisibility(score);
   renderGrade(grade, score, verdict, url);

@@ -4,6 +4,7 @@ const {
   buildUtmUrl,
   withScanUrl,
   buildGenieHandoffUrl,
+  readFixPlan,
   normalizeFixItems,
   visibleFixItems,
   MAX_HANDOFF_URL_LENGTH,
@@ -104,11 +105,71 @@ describe('buildGenieHandoffUrl', () => {
   });
 });
 
+describe('readFixPlan', () => {
+  const contractPlan = [
+    { step: 1, action: 'Add Organization schema', impact: '+8 points', effort: '30 min' },
+    { step: 2, action: 'Fill publisher on Article', impact: '+5 points', effort: '15 min' },
+  ];
+
+  it('prefers the camelCase fixPlan contract key over legacy aliases', () => {
+    const picked = readFixPlan({
+      fixPlan: contractPlan,
+      fix_plan: [{ title: 'snake_case should lose' }],
+      fixes: [{ title: 'fixes should lose' }],
+      recommendations: [{ title: 'recommendations should lose' }],
+    });
+    assert.equal(picked, contractPlan);
+    assert.equal(picked[0].action, 'Add Organization schema');
+    assert.equal(picked[0].impact, '+8 points');
+    assert.equal(picked[0].effort, '30 min');
+    assert.equal(picked[0].step, 1);
+  });
+
+  it('does not treat an empty fixPlan array as missing', () => {
+    const picked = readFixPlan({
+      fixPlan: [],
+      fix_plan: [{ title: 'must not leak through' }],
+      recommendations: [{ title: 'must not leak through' }],
+    });
+    assert.deepEqual(picked, []);
+  });
+
+  it('falls back through fix_plan, then fixes, then recommendations', () => {
+    assert.deepEqual(readFixPlan({ fix_plan: [{ title: 'snake' }] }), [{ title: 'snake' }]);
+    assert.deepEqual(readFixPlan({ fixes: [{ title: 'fixes' }] }), [{ title: 'fixes' }]);
+    assert.deepEqual(readFixPlan({ recommendations: [{ title: 'recs' }] }), [{ title: 'recs' }]);
+  });
+
+  it('returns an empty list when the payload has no plan key', () => {
+    assert.deepEqual(readFixPlan({ overall: { score: 72 } }), []);
+    assert.deepEqual(readFixPlan(null), []);
+    assert.deepEqual(readFixPlan(undefined), []);
+  });
+});
+
 describe('visibleFixItems', () => {
   it('treats empty / missing plans as zero items', () => {
     assert.deepEqual(visibleFixItems([]), { items: [], hiddenCount: 0, total: 0 });
     assert.deepEqual(visibleFixItems(null), { items: [], hiddenCount: 0, total: 0 });
     assert.deepEqual(visibleFixItems(undefined), { items: [], hiddenCount: 0, total: 0 });
+  });
+
+  it('keeps README contract fields (step, action, impact, effort) through the cap path', () => {
+    const plan = Array.from({ length: 12 }, (_, i) => ({
+      step: i + 1,
+      action: `Add type ${i + 1}`,
+      impact: `+${10 - i} points`,
+      effort: 'low',
+    }));
+    const fromPayload = visibleFixItems(readFixPlan({ fixPlan: plan }));
+    assert.equal(fromPayload.items.length, 10);
+    assert.equal(fromPayload.hiddenCount, 2);
+    assert.equal(fromPayload.total, 12);
+    assert.equal(fromPayload.items[0].action, 'Add type 1');
+    assert.equal(fromPayload.items[0].impact, '+10 points');
+    assert.equal(fromPayload.items[0].effort, 'low');
+    assert.equal(fromPayload.items[0].step, 1);
+    assert.equal(fromPayload.items[9].action, 'Add type 10');
   });
 
   it('normalizes a keyed object plan', () => {
