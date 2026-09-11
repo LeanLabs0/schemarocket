@@ -738,7 +738,7 @@ function renderFixPlan(fixes) {
 
   if (items.length === 0) {
     items = [
-      { title: 'Detailed fixes will appear here', description: 'Book a review to get your personalized fix plan.' },
+      { title: 'Detailed fixes will appear here', description: 'Run the AEO Genie for the rest of your moves.' },
     ];
   }
 
