@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
-    "dev:vercel": "vercel dev --listen 5500"
+    "dev:vercel": "vercel dev --listen 5500",
+    "test": "node --test test/*.test.js",
+    "lint": "node --check lib/handoff.js && node --check app.js && node --check server.js && node --check test/handoff.test.js && node --check api/score.js && node --check api/resolve.js && node --check api/report.js && node --check api/save.js && node --check api/_hubspot.js",
+    "typecheck": "node -e \"console.log('no TypeScript in this repo; skipped')\""
   },
   "dependencies": {
     "dotenv": "^17.2.3",

@@ -10,6 +10,8 @@ const CONFIG = {
   BRAND_NAME: 'Lean Labs',
 };
 
+const Handoff = window.SchemaHandoff || {};
+
 // ── Report "Next steps" cards ────────────────────────────────
 // Base destination per card. EDWARD: confirm/fill these before deploy.
 const NEXT_STEPS = {
@@ -26,35 +28,52 @@ const NEXT_STEP_CAMPAIGN = {
 
 // Append UTM params to a base URL. Returns null for a blank/unset base.
 function buildUtmUrl(base, campaign, content = UTM.content) {
-  if (!base) return null;
-  const u = new URL(base);
-  u.searchParams.set('utm_source', UTM.source);
-  u.searchParams.set('utm_medium', UTM.medium);
-  u.searchParams.set('utm_campaign', campaign);
-  u.searchParams.set('utm_content', content);
-  return u.toString();
+  return Handoff.buildUtmUrl(base, campaign, content, {
+    source: UTM.source,
+    medium: UTM.medium,
+  });
 }
 
 // Add the scanned URL as ?url= so AEO Genie / AEO Baseline open with it
 // filled in. Falls back to the bare base while no report is on screen.
 function withScanUrl(base) {
-  if (!base) return null;
-  const u = new URL(base);
-  if (currentReportUrl) u.searchParams.set('url', currentReportUrl);
-  return u.toString();
+  return Handoff.withScanUrl(base, currentReportUrl);
 }
 
-// The fix-plan gate hands the visitor to AEO Genie (campaign aeo_genie,
-// content fix_plan) so the report's next step is the full AEO picture.
+// Hands the visitor to AEO Genie with this page's URL (Genie has no
+// fix-plan payload param; oversized scan URLs are dropped so the tab still opens).
 function buildGenieHandoffUrl() {
-  return buildUtmUrl(withScanUrl(CONFIG.GENIE_URL), 'aeo_genie', 'fix_plan');
+  return Handoff.buildGenieHandoffUrl(CONFIG.GENIE_URL, currentReportUrl, {
+    source: UTM.source,
+    medium: UTM.medium,
+    campaign: 'aeo_genie',
+    content: 'fix_plan',
+  });
+}
+
+function syncGenieLinks() {
+  const href = buildGenieHandoffUrl();
+  $$('[data-cta="genie"]').forEach((el) => {
+    if (href) {
+      el.href = href;
+    } else {
+      el.removeAttribute('href');
+    }
+  });
+  const note = $('[data-genie-footnote]');
+  if (note) {
+    note.textContent = currentReportUrl
+      ? '100% free. Opens in a new tab with this URL filled in.'
+      : '100% free. Opens in a new tab.';
+  }
 }
 
 // Re-point the AEO Baseline "Next steps" card at the scanned URL.
 function syncNextStepLinks() {
   const card = $('[data-nextstep="aeo-baseline"]');
   if (!card || !NEXT_STEPS['aeo-baseline']) return;
-  card.href = buildUtmUrl(withScanUrl(NEXT_STEPS['aeo-baseline']), NEXT_STEP_CAMPAIGN['aeo-baseline']);
+  const href = buildUtmUrl(withScanUrl(NEXT_STEPS['aeo-baseline']), NEXT_STEP_CAMPAIGN['aeo-baseline']);
+  if (href) card.href = href;
 }
 
 // ── Grade color map ─────────────────────────────────────────
@@ -127,12 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $$('[data-cta="aeo"]').forEach((btn) => {
     btn.addEventListener('click', () => window.open(CONFIG.AEO_URL, '_blank'));
   });
-  $$('[data-cta="genie"]').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.open(buildGenieHandoffUrl(), '_blank', 'noopener');
-    });
-  });
+  syncGenieLinks();
 
   // Wire the "Next steps" cards with UTM-tagged hrefs. A blank base URL
   // leaves the card visibly unlinked rather than shipping a dead link.
@@ -276,6 +290,7 @@ function showReport(report, url, auditDate) {
   currentAuditDate = auditDate || null;
   renderResults(report, url);
   syncNextStepLinks();
+  syncGenieLinks();
   const field = $('#urlField');
   if (field) field.value = url;
   setReportRoute(url);
@@ -727,19 +742,25 @@ function renderGaps(gaps) {
 
 function renderFixPlan(fixes) {
   const container = $('#fixPlanContainer');
+  const moreEl = $('#fixPlanMore');
+  if (!container) return;
   container.innerHTML = '';
 
-  let items = [];
-  if (Array.isArray(fixes)) {
-    items = fixes;
-  } else if (typeof fixes === 'object') {
-    items = Object.entries(fixes).map(([k, v]) => ({ title: k, description: typeof v === 'string' ? v : v.description || '' }));
-  }
+  const { items, hiddenCount } = Handoff.visibleFixItems
+    ? Handoff.visibleFixItems(fixes)
+    : { items: Array.isArray(fixes) ? fixes : [], hiddenCount: 0 };
 
-  if (items.length === 0) {
-    items = [
-      { title: 'Detailed fixes will appear here', description: 'Run the AEO Genie for the rest of your moves.' },
-    ];
+  const status = $('#fixPlanStatus');
+  const section = document.querySelector('.results-fixplan-section');
+  const isPerfect = section?.classList.contains('is-perfect-score');
+  if (status && !isPerfect) {
+    if (items.length === 0) {
+      status.textContent = 'No extra schema fixes on this page. Run the AEO Genie for the rest of your AEO moves.';
+      status.hidden = false;
+    } else {
+      status.textContent = '';
+      status.hidden = true;
+    }
   }
 
   items.forEach((fix, i) => {
@@ -748,7 +769,7 @@ function renderFixPlan(fixes) {
     const heading = fix.action || fix.title || fix.name || 'Fix ' + (i + 1);
     const detail = fix.impact ? `Estimated impact: ${fix.impact}. ${fix.effort || ''}`.trim() : (fix.description || fix.detail || '');
     el.innerHTML = `
-      <div class="fix-number">${fix.step || i + 1}</div>
+      <div class="fix-number">${esc(String(fix.step || i + 1))}</div>
       <div>
         <h4>${esc(heading)}</h4>
         <p>${esc(detail)}</p>
@@ -756,6 +777,16 @@ function renderFixPlan(fixes) {
     `;
     container.appendChild(el);
   });
+
+  if (moreEl) {
+    if (hiddenCount > 0) {
+      moreEl.textContent = `+ ${hiddenCount} more schema ${hiddenCount === 1 ? 'fix' : 'fixes'} identified`;
+      moreEl.hidden = false;
+    } else {
+      moreEl.textContent = '';
+      moreEl.hidden = true;
+    }
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -921,7 +952,16 @@ function updateFixPlanVisibility(score) {
   if (!fixPlanSection) return;
   const numericScore = Number(score);
   const isPerfectScore = Number.isFinite(numericScore) && Math.round(numericScore) >= 100;
-  fixPlanSection.style.display = isPerfectScore ? 'none' : '';
+  // Keep the section (and the Genie CTA) visible on a perfect schema score.
+  // Only the schema-fix list is swapped for a short "you're clear" note.
+  fixPlanSection.classList.toggle('is-perfect-score', isPerfectScore);
+  const status = $('#fixPlanStatus');
+  if (status) {
+    status.textContent = isPerfectScore
+      ? 'Schema on this page looks complete. Run the AEO Genie for the rest of your AEO moves.'
+      : '';
+    status.hidden = !isPerfectScore;
+  }
 }
 
 // ── Initial view routing ─────────────────────────────────────

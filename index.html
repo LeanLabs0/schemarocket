@@ -148,56 +148,22 @@
           <p>The top schema fixes for this page, in order. The rest of your AEO moves come from the AEO Genie.</p>
         </div>
 
-        <div class="gated-container">
-          <div class="gated-content">
-            <div id="fixPlanContainer"></div>
-            <div class="fix-teaser-extras">
-              <div class="fix-item">
-                <div class="fix-number">6</div>
-                <div>
-                  <h4>Your AI visibility score</h4>
-                  <p>How often ChatGPT, Gemini, Perplexity and Google AI Overview recommend you.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">7</div>
-                <div>
-                  <h4>10 AEO quick wins, ranked by impact</h4>
-                  <p>On-site and off-site fixes beyond schema, in the order to do them.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">8</div>
-                <div>
-                  <h4>Competitor AEO battle card</h4>
-                  <p>Who AI recommends instead of you in your category.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">9</div>
-                <div>
-                  <h4>A citation strategy</h4>
-                  <p>The sources AI already trusts in your space, and how to get named there.</p>
-                </div>
-              </div>
-              <div class="fix-item">
-                <div class="fix-number">10</div>
-                <div>
-                  <h4>An AEO money model</h4>
-                  <p>What AI-driven demand is worth to you, on your own numbers.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <p id="fixPlanStatus" class="fix-plan-status" hidden></p>
+        <div id="fixPlanContainer" class="fix-plan-list"></div>
+        <p id="fixPlanMore" class="fix-plan-more" hidden></p>
 
-          <div class="gated-overlay">
-            <div class="gated-overlay-inner">
-              <h3>Your next move: run the AEO Genie</h3>
-              <p>Schema is one lever. AEO Genie scores you across ChatGPT, Gemini, Perplexity and Google AI Overview, then gives you the highest-impact moves beyond schema, on-site and off-site, plus a competitor AEO battle card.</p>
-              <button class="btn-secondary btn-unlock" data-cta="genie">Run my AEO Genie</button>
-              <span class="gated-footnote">100% free. Opens in a new tab with this URL filled in.</span>
-            </div>
-          </div>
+        <div class="genie-handoff">
+          <h3>Your next move: run the AEO Genie</h3>
+          <p>Schema is one lever. AEO Genie scores you across ChatGPT, Gemini, Perplexity and Google AI Overview, then gives you the highest-impact moves beyond schema, on-site and off-site, plus a competitor AEO battle card.</p>
+          <ul class="genie-handoff-points">
+            <li>Your AI visibility score</li>
+            <li>10 AEO quick wins, ranked by impact</li>
+            <li>Competitor AEO battle card</li>
+            <li>A citation strategy</li>
+            <li>An AEO money model</li>
+          </ul>
+          <a class="btn-secondary" data-cta="genie" href="https://www.aeogenie.com/?utm_source=schemascore.ai&amp;utm_medium=report&amp;utm_campaign=aeo_genie&amp;utm_content=fix_plan" target="_blank" rel="noopener noreferrer">Run my AEO Genie</a>
+          <span class="gated-footnote" data-genie-footnote>100% free. Opens in a new tab with this URL filled in.</span>
         </div>
       </section>
 
@@ -279,6 +245,7 @@
     </div>
   </div>
 
+  <script src="/lib/handoff.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Schema Rocket — Schema Score Experience (Frontend)
 
-Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis, a fix plan that hands off to AEO Genie (`aeogenie.com/?url=<scanned url>`), and a bottom CTA that books an AEO strategy call.
+Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis, a visible schema fix plan, and a handoff to AEO Genie (`aeogenie.com/?url=<scanned url>`). The bottom CTA books an AEO strategy call.
 
 **Live:** https://schemascore.ai (Vercel, deploys `main`; the old schemarocket.netlify.app copy is stale)
 **Backend repo:** [factor8-agent-sdk](https://github.com/LeanLabs0/factor8-agent-sdk)
@@ -12,7 +12,8 @@ Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema 
 | File | Purpose |
 |------|---------|
 | `index.html` | 3 screens: INPUT, SCANNING, RESULTS. Static markup. |
-| `app.js` | State machine plus fetch to backend. Parses JSON into dimension cards, gap cards, and gated fix plan. |
+| `app.js` | State machine plus fetch to backend. Parses JSON into dimension cards, gap cards, and the schema fix plan plus Genie handoff. |
+| `lib/handoff.js` | Shared URL builders for the AEO Genie / Baseline `?url=` prefill (Node-tested). |
 | `styles.css` | All styling. Currently uses Skittles palette. Brand pass pending. |
 
 ## Local dev
