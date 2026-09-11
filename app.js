@@ -552,9 +552,9 @@ function renderResults(data, url) {
     currentSnippet: g.currentSnippet ?? g.current ?? g.existing ?? null,
     fixSnippet: g.fixSnippet ?? g.fix ?? g.recommended ?? null,
   }));
-  // The backend contract (README, api/_hubspot.js) is camelCase fixPlan; the snake_case
-  // key was never sent, so the plan never rendered until now.
-  const fixPlan = data.fixPlan || data.fix_plan || data.fixes || data.recommendations || [];
+  const fixPlan = Handoff.readFixPlan
+    ? Handoff.readFixPlan(data)
+    : (data.fixPlan || data.fix_plan || data.fixes || data.recommendations || []);
 
   updateFixPlanVisibility(score);
   renderGrade(grade, score, verdict, url);
