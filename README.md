@@ -1,6 +1,6 @@
 # Schema Rocket — Schema Score Experience (Frontend)
 
-Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis and a gated fix-plan CTA.
+Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis, a fix plan that hands off to AEO Genie (`aeogenie.com/?url=<scanned url>`), and a bottom CTA that books an AEO strategy call.
 
 **Live:** https://schemarocket.netlify.app/
 **Backend repo:** [factor8-agent-sdk](https://github.com/LeanLabs0/factor8-agent-sdk)

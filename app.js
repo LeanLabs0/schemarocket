@@ -6,6 +6,7 @@
 const CONFIG = {
   CTA_URL: 'https://calendly.com/leanlabs',
   AEO_URL: 'https://www.leanlabs.com/aeo-accelerator?utm_source=schemascore.ai&utm_medium=report&utm_campaign=schemascore.ai&utm_content=explore_aeo',
+  GENIE_URL: 'https://www.aeogenie.com/', // accepts ?url= and prefills its form with it
   BRAND_NAME: 'Lean Labs',
 };
 
@@ -24,14 +25,36 @@ const NEXT_STEP_CAMPAIGN = {
 };
 
 // Append UTM params to a base URL. Returns null for a blank/unset base.
-function buildUtmUrl(base, campaign) {
+function buildUtmUrl(base, campaign, content = UTM.content) {
   if (!base) return null;
   const u = new URL(base);
   u.searchParams.set('utm_source', UTM.source);
   u.searchParams.set('utm_medium', UTM.medium);
   u.searchParams.set('utm_campaign', campaign);
-  u.searchParams.set('utm_content', UTM.content);
+  u.searchParams.set('utm_content', content);
   return u.toString();
+}
+
+// Add the scanned URL as ?url= so AEO Genie / AEO Baseline open with it
+// filled in. Falls back to the bare base while no report is on screen.
+function withScanUrl(base) {
+  if (!base) return null;
+  const u = new URL(base);
+  if (currentReportUrl) u.searchParams.set('url', currentReportUrl);
+  return u.toString();
+}
+
+// The fix-plan gate hands the visitor to AEO Genie (campaign aeo_genie,
+// content fix_plan) so the report's next step is the full AEO picture.
+function buildGenieHandoffUrl() {
+  return buildUtmUrl(withScanUrl(CONFIG.GENIE_URL), 'aeo_genie', 'fix_plan');
+}
+
+// Re-point the AEO Baseline "Next steps" card at the scanned URL.
+function syncNextStepLinks() {
+  const card = $('[data-nextstep="aeo-baseline"]');
+  if (!card || !NEXT_STEPS['aeo-baseline']) return;
+  card.href = buildUtmUrl(withScanUrl(NEXT_STEPS['aeo-baseline']), NEXT_STEP_CAMPAIGN['aeo-baseline']);
 }
 
 // ── Grade color map ─────────────────────────────────────────
@@ -103,6 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $$('[data-cta="aeo"]').forEach((btn) => {
     btn.addEventListener('click', () => window.open(CONFIG.AEO_URL, '_blank'));
+  });
+  $$('[data-cta="genie"]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(buildGenieHandoffUrl(), '_blank', 'noopener');
+    });
   });
 
   // Wire the "Next steps" cards with UTM-tagged hrefs. A blank base URL
@@ -246,6 +275,7 @@ function showReport(report, url, auditDate) {
   currentReportUrl = url;
   currentAuditDate = auditDate || null;
   renderResults(report, url);
+  syncNextStepLinks();
   const field = $('#urlField');
   if (field) field.value = url;
   setReportRoute(url);
