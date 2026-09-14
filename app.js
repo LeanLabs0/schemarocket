@@ -5,7 +5,7 @@
 
 const CONFIG = {
   CTA_URL: 'https://calendly.com/leanlabs',
-  AEO_URL: 'https://www.leanlabs.com/aeo-accelerator?utm_source=schemascore.ai&utm_medium=report&utm_campaign=schemascore.ai&utm_content=explore_aeo',
+  AEO_URL: 'https://www.leanlabs.com/products-partners?utm_source=schemascore.ai&utm_medium=report&utm_campaign=schemascore.ai&utm_content=explore_aeo',
   GENIE_URL: 'https://www.aeogenie.com/', // accepts ?url= and prefills its form with it
   SCHEMA_ROCKET_URL: 'https://www.leanlabs.com/solutions/hubspot-website-schema-rocket',
   BRAND_NAME: 'Lean Labs',

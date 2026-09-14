@@ -10,7 +10,7 @@ const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 const SCHEMA_ROCKET = 'https://www.leanlabs.com/solutions/hubspot-website-schema-rocket';
 const GENIE = 'https://www.aeogenie.com/';
-const AEO_TOOLS = 'https://www.leanlabs.com/aeo-accelerator';
+const AEO_TOOLS = 'https://www.leanlabs.com/products-partners';
 const AGENCY = 'answer-engine-optimization-agency';
 
 function nextStepsMarkup() {
@@ -62,10 +62,11 @@ describe('RAL-74 Next Steps is AEO-broad, not the old product row', () => {
 });
 
 describe('Explore more AEO tools', () => {
-  it('points at the AEO accelerator, not the agency page', () => {
+  it('points at the products stack, not the agency page', () => {
     assert.match(indexHtml, /data-cta="aeo"/);
     assert.match(indexHtml, new RegExp(AEO_TOOLS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.doesNotMatch(indexHtml, new RegExp(AGENCY));
-    assert.match(appJs, /AEO_URL:\s*'https:\/\/www\.leanlabs\.com\/aeo-accelerator/);
+    assert.match(appJs, /AEO_URL:\s*'https:\/\/www\.leanlabs\.com\/products-partners/);
+    assert.doesNotMatch(appJs, /aeo-accelerator/);
   });
 });
