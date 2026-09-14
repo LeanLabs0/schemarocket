@@ -1443,6 +1443,15 @@ button {
   transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
+button.nextstep-card {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
 .nextstep-card:hover {
   border-color: rgba(255, 255, 255, 0.36);
   background: #1a1a1a;

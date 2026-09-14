@@ -1,6 +1,6 @@
 # Schema Rocket — Schema Score Experience (Frontend)
 
-Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis, a visible schema fix plan, and a handoff to AEO Genie (`aeogenie.com/?url=<scanned url>`). The bottom CTA books an AEO strategy call.
+Lead-gen prototype for Lean Labs. Accepts a URL, returns a letter-graded schema audit with gap analysis, a visible schema fix plan, and a handoff to AEO Genie (`aeogenie.com/?url=<scanned url>`). Next Steps lead with Genie, a live Schema Rocket product link, and an AEO strategy-call card. The bottom CTA books that same call; "Explore more AEO tools" goes to the AEO accelerator.
 
 **Live:** https://schemascore.ai (Vercel, deploys `main`; the old schemarocket.netlify.app copy is stale)
 **Backend repo:** [factor8-agent-sdk](https://github.com/LeanLabs0/factor8-agent-sdk)
