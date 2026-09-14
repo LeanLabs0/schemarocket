@@ -71,6 +71,14 @@ describe('buildGenieHandoffUrl', () => {
     assert.equal(u.searchParams.get('utm_medium'), 'report');
   });
 
+  it('tags the Next Steps Genie card as next_steps instead of fix_plan', () => {
+    const href = buildGenieHandoffUrl(GENIE, 'https://lean-labs.com/', { content: 'next_steps' });
+    const u = new URL(href);
+    assert.equal(u.searchParams.get('url'), 'https://lean-labs.com/');
+    assert.equal(u.searchParams.get('utm_campaign'), 'aeo_genie');
+    assert.equal(u.searchParams.get('utm_content'), 'next_steps');
+  });
+
   it('still opens Genie when there is no scan URL', () => {
     const href = buildGenieHandoffUrl(GENIE, '');
     const u = new URL(href);
