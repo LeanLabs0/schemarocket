@@ -1440,16 +1440,13 @@ button {
   box-shadow: var(--shadow-xsmall);
   text-decoration: none;
   color: var(--color-text);
+  cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
-button.nextstep-card {
-  appearance: none;
-  -webkit-appearance: none;
-  font: inherit;
-  text-align: left;
-  width: 100%;
-  cursor: pointer;
+.nextstep-card:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 2px;
 }
 
 .nextstep-card:hover {

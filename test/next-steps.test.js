@@ -28,6 +28,14 @@ describe('RAL-76 Schema Rocket next-step href', () => {
     assert.doesNotMatch(appJs, /FILL: HubSpot redirect/);
   });
 
+  it('ships a static Schema Rocket href so the card is clickable before JS', () => {
+    const section = nextStepsMarkup();
+    assert.match(
+      section,
+      /data-nextstep="schema-rocket"[^>]*href="https:\/\/www\.leanlabs\.com\/solutions\/hubspot-website-schema-rocket\?[^"]*utm_campaign=schema_rocket/,
+    );
+  });
+
   it('builds a clickable UTM-tagged Schema Rocket URL', () => {
     const href = buildUtmUrl(SCHEMA_ROCKET, 'schema_rocket', 'next_steps');
     const u = new URL(href);
@@ -52,6 +60,26 @@ describe('RAL-74 Next Steps is AEO-broad, not the old product row', () => {
     assert.doesNotMatch(section, /aeobaseline\.com/);
   });
 
+  it('keeps the strategy-call card an <a> so h4/p stay valid and match the other cards', () => {
+    const section = nextStepsMarkup();
+    assert.match(section, /<a class="nextstep-card" data-cta="book"/);
+    assert.doesNotMatch(section, /<button[^>]*class="nextstep-card"/);
+    assert.doesNotMatch(section, /<button[^>]*>[\s\S]*<h4>/);
+  });
+
+  it('ships a static Genie href and JS rewrites it with the scanned URL', () => {
+    const section = nextStepsMarkup();
+    assert.match(
+      section,
+      /data-nextstep="aeo-genie"[^>]*href="https:\/\/www\.aeogenie\.com\/\?[^"]*utm_content=next_steps/,
+    );
+    assert.match(appJs, /function hrefForNextStep/);
+    assert.match(appJs, /Handoff\.buildGenieHandoffUrl\(CONFIG\.GENIE_URL, currentReportUrl/);
+    assert.match(appJs, /content:\s*UTM\.content/);
+    assert.match(appJs, /syncNextStepLinks\(\)/);
+    assert.match(appJs, /function showReport[\s\S]*syncNextStepLinks\(\)/);
+  });
+
   it('hands the Next Steps Genie card the scanned URL with next_steps UTMs', () => {
     const href = buildGenieHandoffUrl(GENIE, 'https://www.lean-labs.com/', { content: 'next_steps' });
     const u = new URL(href);
@@ -68,5 +96,19 @@ describe('Explore more AEO tools', () => {
     assert.doesNotMatch(indexHtml, new RegExp(AGENCY));
     assert.match(appJs, /AEO_URL:\s*'https:\/\/www\.leanlabs\.com\/products-partners/);
     assert.doesNotMatch(appJs, /aeo-accelerator/);
+  });
+
+  it('is a native <a target=_blank> and does not preventDefault on the link', () => {
+    assert.match(
+      indexHtml,
+      /data-cta="aeo"[^>]*href="https:\/\/www\.leanlabs\.com\/products-partners\?/,
+    );
+    assert.match(indexHtml, /data-cta="aeo"[^>]*target="_blank"/);
+    assert.match(indexHtml, /data-cta="aeo"[^>]*rel="noopener noreferrer"/);
+    assert.match(appJs, /if \(el\.tagName === 'A'\)/);
+    assert.match(appJs, /el\.href = CONFIG\.AEO_URL/);
+    const aeoHandler = appJs.slice(appJs.indexOf("$$('[data-cta=\"aeo\"]')"));
+    const anchorBranch = aeoHandler.slice(0, aeoHandler.indexOf('el.addEventListener'));
+    assert.doesNotMatch(anchorBranch, /preventDefault/);
   });
 });

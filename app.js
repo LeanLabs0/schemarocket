@@ -159,8 +159,16 @@ document.addEventListener('DOMContentLoaded', () => {
       openMeetingModal();
     });
   });
-  $$('[data-cta="aeo"]').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
+  // Keep Explore-more in sync with CONFIG, but do not hijack a real
+  // <a href> — preventDefault + window.open is popup-blocked and fails QC.
+  $$('[data-cta="aeo"]').forEach((el) => {
+    if (el.tagName === 'A') {
+      el.href = CONFIG.AEO_URL;
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
+      return;
+    }
+    el.addEventListener('click', (e) => {
       e.preventDefault();
       window.open(CONFIG.AEO_URL, '_blank', 'noopener,noreferrer');
     });
