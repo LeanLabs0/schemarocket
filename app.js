@@ -5,25 +5,25 @@
 
 const CONFIG = {
   CTA_URL: 'https://calendly.com/leanlabs',
-  AEO_URL: 'https://www.leanlabs.com/aeo-accelerator?utm_source=schemascore.ai&utm_medium=report&utm_campaign=schemascore.ai&utm_content=explore_aeo',
+  AEO_URL: 'https://www.leanlabs.com/products-partners?utm_source=schemascore.ai&utm_medium=report&utm_campaign=schemascore.ai&utm_content=explore_aeo',
   GENIE_URL: 'https://www.aeogenie.com/', // accepts ?url= and prefills its form with it
+  SCHEMA_ROCKET_URL: 'https://www.leanlabs.com/solutions/hubspot-website-schema-rocket',
   BRAND_NAME: 'Lean Labs',
 };
 
 const Handoff = window.SchemaHandoff || {};
 
 // ── Report "Next steps" cards ────────────────────────────────
-// Base destination per card. EDWARD: confirm/fill these before deploy.
+// Schema Rocket is the paid schema path. Genie is the free Schema→AEO
+// handoff. The strategy-call card is wired via data-cta="book", not here.
 const NEXT_STEPS = {
-  'schema-rocket': '',                                                            // <<< FILL: HubSpot redirect for Schema Rocket
-  'breeze-bundle': 'https://www.leanlabs.com/solutions/hubspot-breeze-agents-free-bundle#bundle-form',
-  'aeo-baseline':  'https://www.aeobaseline.com/',
+  'aeo-genie': CONFIG.GENIE_URL,
+  'schema-rocket': CONFIG.SCHEMA_ROCKET_URL,
 };
 const UTM = { source: 'schemascore.ai', medium: 'report', content: 'next_steps' };
 const NEXT_STEP_CAMPAIGN = {
+  'aeo-genie': 'aeo_genie',
   'schema-rocket': 'schema_rocket',
-  'breeze-bundle': 'breeze_bundle',
-  'aeo-baseline':  'aeo_baseline',
 };
 
 // Append UTM params to a base URL. Returns null for a blank/unset base.
@@ -32,12 +32,6 @@ function buildUtmUrl(base, campaign, content = UTM.content) {
     source: UTM.source,
     medium: UTM.medium,
   });
-}
-
-// Add the scanned URL as ?url= so AEO Genie / AEO Baseline open with it
-// filled in. Falls back to the bare base while no report is on screen.
-function withScanUrl(base) {
-  return Handoff.withScanUrl(base, currentReportUrl);
 }
 
 // Hands the visitor to AEO Genie with this page's URL (Genie has no
@@ -68,12 +62,34 @@ function syncGenieLinks() {
   }
 }
 
-// Re-point the AEO Baseline "Next steps" card at the scanned URL.
+// Href for a Next Steps card. Genie reuses the length-safe ?url= handoff
+// (utm_content=next_steps so it is distinct from the fix-plan CTA).
+function hrefForNextStep(key) {
+  const campaign = NEXT_STEP_CAMPAIGN[key];
+  if (key === 'aeo-genie') {
+    return Handoff.buildGenieHandoffUrl(CONFIG.GENIE_URL, currentReportUrl, {
+      source: UTM.source,
+      medium: UTM.medium,
+      campaign,
+      content: UTM.content,
+    });
+  }
+  return buildUtmUrl(NEXT_STEPS[key], campaign);
+}
+
 function syncNextStepLinks() {
-  const card = $('[data-nextstep="aeo-baseline"]');
-  if (!card || !NEXT_STEPS['aeo-baseline']) return;
-  const href = buildUtmUrl(withScanUrl(NEXT_STEPS['aeo-baseline']), NEXT_STEP_CAMPAIGN['aeo-baseline']);
-  if (href) card.href = href;
+  $$('[data-nextstep]').forEach((a) => {
+    const href = hrefForNextStep(a.getAttribute('data-nextstep'));
+    if (href) {
+      a.href = href;
+      a.removeAttribute('aria-disabled');
+      a.classList.remove('is-unlinked');
+    } else {
+      a.removeAttribute('href');
+      a.setAttribute('aria-disabled', 'true');
+      a.classList.add('is-unlinked');
+    }
+  });
 }
 
 // ── Grade color map ─────────────────────────────────────────
@@ -143,24 +159,25 @@ document.addEventListener('DOMContentLoaded', () => {
       openMeetingModal();
     });
   });
-  $$('[data-cta="aeo"]').forEach((btn) => {
-    btn.addEventListener('click', () => window.open(CONFIG.AEO_URL, '_blank'));
+  // Keep Explore-more in sync with CONFIG, but do not hijack a real
+  // <a href> — preventDefault + window.open is popup-blocked and fails QC.
+  $$('[data-cta="aeo"]').forEach((el) => {
+    if (el.tagName === 'A') {
+      el.href = CONFIG.AEO_URL;
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
+      return;
+    }
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(CONFIG.AEO_URL, '_blank', 'noopener,noreferrer');
+    });
   });
   syncGenieLinks();
 
   // Wire the "Next steps" cards with UTM-tagged hrefs. A blank base URL
   // leaves the card visibly unlinked rather than shipping a dead link.
-  $$('[data-nextstep]').forEach((a) => {
-    const key = a.getAttribute('data-nextstep');
-    const href = buildUtmUrl(NEXT_STEPS[key], NEXT_STEP_CAMPAIGN[key]);
-    if (href) {
-      a.href = href;
-    } else {
-      a.removeAttribute('href');
-      a.setAttribute('aria-disabled', 'true');
-      a.classList.add('is-unlinked');
-    }
-  });
+  syncNextStepLinks();
 
   updateToolbarState();
   restoreInitialView();
