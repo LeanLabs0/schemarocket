@@ -30,7 +30,7 @@ describe('Schema Score report copy', () => {
   });
 
   it('keeps the old overclaims out of the page and app', () => {
-    for (const re of [/can't see most of your site/i, /industry benchmarks/i, /more issues in full report/i, /NEEDS ENRICHMENT/]) {
+    for (const re of [/can't see most of your site/i, /isn't fully clear about what it is/i, /industry benchmarks/i, /more issues in full report/i, /NEEDS ENRICHMENT/]) {
       assert.doesNotMatch(appJs, re);
       assert.doesNotMatch(indexHtml, re);
     }
@@ -39,6 +39,7 @@ describe('Schema Score report copy', () => {
   it('maps the commas.com dimension scores to honest headlines', () => {
     assert.equal(dimensionHeadline('Required Types Present', dimensionLevel(25)), 'Most of your core schema is missing');
     assert.equal(dimensionHeadline('Entity Connections', dimensionLevel(70)), 'Your schema pieces are linked together');
+    assert.equal(dimensionHeadline('Correct Type for Page', dimensionLevel(67)), 'Your schema is missing website or page context');
     assert.equal(dimensionHeadline('Unknown Dimension', 'low'), 'Unknown Dimension');
   });
 
