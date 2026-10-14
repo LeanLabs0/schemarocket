@@ -6,6 +6,7 @@ const {
   DIMENSION_HEADLINES,
   dimensionLevel,
   dimensionHeadline,
+  rowHeadline,
   readinessLabel,
   gapStatusLabel,
   isHighPriority,
@@ -39,6 +40,20 @@ describe('Schema Score report copy', () => {
     assert.equal(dimensionHeadline('Required Types Present', dimensionLevel(25)), 'Most of your core schema is missing');
     assert.equal(dimensionHeadline('Entity Connections', dimensionLevel(70)), 'Your schema pieces are linked together');
     assert.equal(dimensionHeadline('Unknown Dimension', 'low'), 'Unknown Dimension');
+  });
+
+  it("uses the agent's specific headline and falls back to the table for old reports", () => {
+    const specific = 'Your logo needs a width and height, and page details are missing';
+    assert.equal(rowHeadline({ name: 'Required Fields Filled', headline: `  ${specific} ` }, 'mid'), specific);
+    assert.equal(rowHeadline({ name: 'Required Fields Filled', headline: '' }, 'mid'), 'Some must-have details are missing');
+    assert.equal(rowHeadline({ name: 'Required Types Present' }, 'low'), 'Most of your core schema is missing');
+    assert.equal(rowHeadline(null, 'low'), '');
+    assert.match(appJs, /ReportCopy\.rowHeadline\(dim, level\)/);
+  });
+
+  it('labels the fix snippet as what to add', () => {
+    assert.match(appJs, /What to add to your schema/);
+    assert.doesNotMatch(appJs, /Schema to add for full points/);
   });
 
   it('bands the readiness badge on the scorer grade scale', () => {

@@ -650,7 +650,7 @@ function renderDimensions(dims) {
   entries.forEach((dim, index) => {
     const pct = Math.max(0, Math.min(100, Number(dim.pct) || 0));
     const level = ReportCopy.dimensionLevel(pct);
-    const headline = ReportCopy.dimensionHeadline(dim.name, level);
+    const headline = ReportCopy.rowHeadline(dim, level);
     dim.headline = headline;
     const scoreLabel = `${pct}%`;
     const row = document.createElement('div');
@@ -798,7 +798,7 @@ function openDimModal(dim) {
   if (dim.remediation) {
     html += `
       <div class="modal-section">
-        <div class="modal-section-label">Schema to add for full points</div>
+        <div class="modal-section-label">What to add to your schema</div>
         ${codeBlock(dim.remediation, 'needed')}
       </div>
     `;
