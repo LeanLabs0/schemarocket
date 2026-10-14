@@ -12,6 +12,7 @@ const CONFIG = {
 };
 
 const Handoff = window.SchemaHandoff || {};
+const ReportCopy = window.SchemaReportCopy || {};
 
 // ── Report "Next steps" cards ────────────────────────────────
 // Schema Rocket is the paid schema path. Genie is the free Schema→AEO
@@ -342,7 +343,7 @@ const STEP_LABELS = [
   'Fetching page and extracting structured data',
   'Classifying page type',
   'Scoring the 7 things AI engines check',
-  'Comparing against industry benchmarks',
+  'Checking which details are filled in',
   'Identifying gaps and generating fix plan',
 ];
 
@@ -594,7 +595,7 @@ function renderGrade(grade, score, verdict, url) {
   $('#verdictEl').textContent = verdict || 'Analysis complete.';
   const readiness = $('#gradeReadinessEl');
   if (readiness) {
-    readiness.textContent = clampedScore >= 80 ? 'AI-READY' : clampedScore >= 55 ? 'NEEDS ENRICHMENT' : 'AT RISK';
+    readiness.textContent = ReportCopy.readinessLabel(clampedScore);
   }
 
   // Set gauge fill for the semi-circle.
@@ -607,52 +608,6 @@ function renderGrade(grade, score, verdict, url) {
     arc.style.strokeDashoffset = `${Math.max(length - visible, 0)}`;
     arc.style.stroke = gradeColor;
   }
-}
-
-// Human-readable verdict headlines per dimension, keyed by the canonical
-// rubric name the scorer emits. Green rows read as a win, red rows as a
-// consequence. Falls back to the raw name for unknown dimensions.
-const DIMENSION_HEADLINES = {
-  'code quality': {
-    high: 'Your schema code is clean and valid',
-    mid: 'Your code mostly works, but errors are weakening it',
-    low: 'Code errors are breaking your schema',
-  },
-  'required types present': {
-    high: 'Google sees your company, site, and page',
-    mid: 'Google only sees part of your site',
-    low: "Google can't see most of your site",
-  },
-  'correct type for page': {
-    high: 'Your page tells AI exactly what it is',
-    mid: "Your page isn't fully clear about what it is",
-    low: "AI can't tell what kind of page this is",
-  },
-  'required fields filled': {
-    high: 'Must-have details are complete',
-    mid: 'Some must-have details are missing',
-    low: 'Most must-have details are missing',
-  },
-  'recommended fields filled': {
-    high: 'Trust signals are in place, building your authority',
-    mid: 'Trust signals are missing, costing you authority',
-    low: 'Trust signals are missing, costing you authority',
-  },
-  'entity connections': {
-    high: 'AI can reliably reference your brand',
-    mid: 'AI can only partly reference your brand',
-    low: "AI can't reliably reference your brand",
-  },
-  'ai answer visibility': {
-    high: 'Strong signals for showing up in AI answers',
-    mid: "You're missing some signals AI engines look for",
-    low: "You're missing the signals AI engines look for",
-  },
-};
-
-function dimensionHeadline(name, level) {
-  const copy = DIMENSION_HEADLINES[String(name).toLowerCase().trim()];
-  return (copy && copy[level]) || name;
 }
 
 function renderDimensions(dims) {
@@ -694,8 +649,8 @@ function renderDimensions(dims) {
 
   entries.forEach((dim, index) => {
     const pct = Math.max(0, Math.min(100, Number(dim.pct) || 0));
-    const level = pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high';
-    const headline = dimensionHeadline(dim.name, level);
+    const level = ReportCopy.dimensionLevel(pct);
+    const headline = ReportCopy.dimensionHeadline(dim.name, level);
     dim.headline = headline;
     const scoreLabel = `${pct}%`;
     const row = document.createElement('div');
@@ -722,7 +677,6 @@ function renderDimensions(dims) {
 
 function renderGaps(gaps) {
   const container = $('#gapsContainer');
-  const moreEl = $('#gapsMore');
   container.innerHTML = '';
 
   let items = [];
@@ -732,13 +686,11 @@ function renderGaps(gaps) {
     items = Object.entries(gaps).map(([k, v]) => ({ title: k, description: typeof v === 'string' ? v : v.description || '' }));
   }
 
-  const top4 = items.slice(0, 4);
-  const remaining = items.length - 4;
-
-  top4.forEach((gap, i) => {
-    const isHigh = (gap.priority || '').toLowerCase() === 'high' || (gap.priority || '').toLowerCase() === 'critical' || i < 2;
-    const priority = isHigh ? 'critical' : 'moderate';
-    const label = isHigh ? 'Missing' : 'Needs work';
+  // Show every gap the scorer returns (it caps them by grade). There is no
+  // separate "full report" to send people to.
+  items.forEach((gap, i) => {
+    const priority = ReportCopy.isHighPriority(gap) ? 'critical' : 'moderate';
+    const label = ReportCopy.gapStatusLabel(gap);
     const card = document.createElement('div');
     card.className = `gap-card ${priority}`;
     card.innerHTML = `
@@ -750,13 +702,6 @@ function renderGaps(gaps) {
     card.addEventListener('click', () => openGapModal(gap));
     container.appendChild(card);
   });
-
-  if (remaining > 0) {
-    moreEl.textContent = `+ ${remaining} more issues in full report`;
-    moreEl.style.display = 'block';
-  } else {
-    moreEl.style.display = 'none';
-  }
 }
 
 function renderFixPlan(fixes) {
@@ -853,7 +798,7 @@ function openDimModal(dim) {
   if (dim.remediation) {
     html += `
       <div class="modal-section">
-        <div class="modal-section-label">Schema needed to reach max</div>
+        <div class="modal-section-label">Schema to add for full points</div>
         ${codeBlock(dim.remediation, 'needed')}
       </div>
     `;

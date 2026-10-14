@@ -813,11 +813,6 @@ button {
   height: 14px;
 }
 
-.gaps-more-text {
-  margin-top: var(--space-4);
-  font-size: var(--text-sm);
-}
-
 .fix-plan-list {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
