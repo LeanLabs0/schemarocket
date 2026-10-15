@@ -10,6 +10,18 @@ function parseBody(req) {
   return req.body;
 }
 
+// Append a one-off _cb so the scoring agent fetches a fresh copy of the page.
+// The rest of the URL is left as entered. HubSpot lookup/save keys are built
+// elsewhere and do not include this parameter.
+function withCacheBuster(url) {
+  const token = `${Date.now()}${Math.floor(Math.random() * 1e6).toString().padStart(6, '0')}`;
+  const hashAt = url.indexOf('#');
+  const base = hashAt === -1 ? url : url.slice(0, hashAt);
+  const hash = hashAt === -1 ? '' : url.slice(hashAt);
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}_cb=${token}${hash}`;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -42,7 +54,7 @@ module.exports = async function handler(req, res) {
         'X-API-Key': API_KEY,
       },
       body: JSON.stringify({
-        prompt: `Score this URL: ${normalizedUrl}`,
+        prompt: `Score this URL: ${withCacheBuster(normalizedUrl)}`,
         agent: AGENT_NAME,
       }),
     });
