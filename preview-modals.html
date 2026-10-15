@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schema Score — Modal Preview</title>
+<title>Schema Score - Modal Preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
@@ -272,7 +272,7 @@
 <div class="preview-shell">
 
   <div class="preview-banner">
-    <strong>Preview only.</strong> Two new interactions: (1) click any <em>dimension row</em> to see why it scored what it did + the schema code involved. (2) Click any <em>gap card</em> to see the broken / missing schema + the fix code to paste in. Modals open below — click rows to test.
+    <strong>Preview only.</strong> Two new interactions: (1) click any <em>dimension row</em> to see why it scored what it did and the schema involved. (2) Click any <em>gap card</em> to see what is missing or what to change. Modals open below. Click a row to test.
   </div>
 
   <!-- DIMENSION ROWS PREVIEW -->
@@ -288,7 +288,7 @@
 
     <div class="dim-row-clickable" onclick="openDimModal(1)">
       <span class="dim-name">Required Types Present</span>
-      <div class="dim-bar-track"><div class="dim-bar-fill mid" style="width: 75%;"></div></div>
+      <div class="dim-bar-track"><div class="dim-bar-fill high" style="width: 75%;"></div></div>
       <span class="dim-score">15 / 20</span>
       <span class="dim-chevron">›</span>
     </div>
@@ -303,34 +303,34 @@
 
   <!-- GAP CARDS PREVIEW -->
   <div class="preview-section">
-    <h2>What's Missing &nbsp;<span style="font-size: 12px; color: var(--ll-muted); font-weight: 400;">→ click any card</span></h2>
+    <h2>What to fix &nbsp;<span style="font-size: 12px; color: var(--ll-muted); font-weight: 400;">→ click any card</span></h2>
 
     <div class="gap-grid-2">
       <div class="gap-card-clickable critical" onclick="openGapModal(0)">
-        <div class="gap-priority critical">High Impact</div>
+        <div class="gap-priority critical">Needs a fix</div>
         <h4>Your company entity is missing social profile links</h4>
-        <p>Search engines can't connect your site to your LinkedIn, X, or YouTube — losing brand recognition signals.</p>
+        <p>Your company schema has no links to your LinkedIn, X, or YouTube profiles.</p>
         <div class="gap-cta">View fix code →</div>
       </div>
 
       <div class="gap-card-clickable critical" onclick="openGapModal(1)">
-        <div class="gap-priority critical">High Impact</div>
+        <div class="gap-priority critical">Missing</div>
         <h4>No breadcrumb navigation declared</h4>
-        <p>Google can't show your page hierarchy in search results, costing you sitelinks and rich snippets.</p>
+        <p>This page has no breadcrumb schema, so the page hierarchy is not written down.</p>
         <div class="gap-cta">View fix code →</div>
       </div>
 
       <div class="gap-card-clickable moderate" onclick="openGapModal(2)">
-        <div class="gap-priority moderate">Moderate</div>
+        <div class="gap-priority moderate">Needs a fix</div>
         <h4>Your page is missing a last-updated date</h4>
-        <p>AI engines prefer fresh content. Adding a last-updated date helps prove your content is current.</p>
+        <p>This page schema has no last-updated date.</p>
         <div class="gap-cta">View fix code →</div>
       </div>
 
       <div class="gap-card-clickable moderate" onclick="openGapModal(3)">
-        <div class="gap-priority moderate">Moderate</div>
+        <div class="gap-priority moderate">Needs a fix</div>
         <h4>Logo declared as plain URL instead of image with dimensions</h4>
-        <p>Google's strictest checks want width + height. Without them, your logo may not appear in Knowledge Panel.</p>
+        <p>The logo is on the page as a plain URL, with no width or height.</p>
         <div class="gap-cta">View fix code →</div>
       </div>
     </div>
@@ -368,7 +368,7 @@ const DIM_DATA = [
   {
     name: 'Required Types Present',
     score: 15, max: 20, pct: 75,
-    rationale: 'You have your company entity (Organization), your site entity (WebSite), and your page entity (WebPage) — but breadcrumb navigation is missing. That costs you 5 points and hurts how Google shows your page in search results.',
+    rationale: 'You have your company entity (Organization), your site entity (WebSite), and your page entity (WebPage), but breadcrumb navigation is missing. That costs 5 points.',
     evidence: `{
   "@type": "Organization",
   "@id": "https://www.leanlabs.com#organization"
@@ -424,7 +424,7 @@ const GAP_DATA = [
   {
     priority: 'high',
     title: 'Your company entity is missing social profile links',
-    description: "Search engines can't connect your site to your LinkedIn, X, or YouTube — losing brand recognition signals.",
+    description: 'Your company schema has no links to your LinkedIn, X, or YouTube profiles.',
     location: 'Inside your company entity (Organization block)',
     currentSnippet: `{
   "@type": "Organization",
@@ -447,8 +447,8 @@ const GAP_DATA = [
   {
     priority: 'high',
     title: 'No breadcrumb navigation declared',
-    description: "Google can't show your page hierarchy in search results, costing you sitelinks and rich snippets.",
-    location: 'New schema block — add to page head alongside your existing schema',
+    description: 'This page has no breadcrumb schema, so the page hierarchy is not written down.',
+    location: 'New schema block. Add it in the page head next to your existing schema',
     currentSnippet: null,
     fixSnippet: `<script type="application/ld+json">
 {
@@ -465,7 +465,7 @@ const GAP_DATA = [
   {
     priority: 'moderate',
     title: 'Your page is missing a last-updated date',
-    description: 'AI engines prefer fresh content. Adding a last-updated date helps prove your content is current.',
+    description: 'This page schema has no last-updated date.',
     location: 'Inside your page entity (WebPage block)',
     currentSnippet: `{
   "@type": "WebPage",
@@ -483,7 +483,7 @@ const GAP_DATA = [
   {
     priority: 'moderate',
     title: 'Logo declared as plain URL instead of image with dimensions',
-    description: "Google's strictest checks want width + height. Without them, your logo may not appear in Knowledge Panel.",
+    description: 'The logo is on the page as a plain URL, with no width or height.',
     location: 'Inside your company entity (Organization block, logo field)',
     currentSnippet: `{
   "logo": "https://www.leanlabs.com/logo.png"
@@ -509,7 +509,7 @@ function openDimModal(idx) {
     <h2>${d.name}</h2>
     <div class="modal-score-line">
       <span class="modal-score-pill">${d.score} / ${d.max}</span>
-      <span>${d.pct}% — ${d.pct === 100 ? 'Full marks' : (d.pct >= 70 ? 'Mostly there' : 'Needs work')}</span>
+      <span>${d.pct}% &middot; ${d.pct >= 100 ? 'Perfect score' : (d.pct >= 70 ? 'In good shape' : (d.pct >= 40 ? 'Needs work' : 'Major gaps'))}</span>
     </div>
 
     <div class="modal-section">
@@ -525,7 +525,7 @@ function openDimModal(idx) {
 
     ${d.remediation ? `
     <div class="modal-section">
-      <div class="modal-section-label">Schema needed to reach max</div>
+      <div class="modal-section-label">What to add to your schema</div>
       ${codeBlock(d.remediation, 'needed')}
     </div>` : ''}
   `;
@@ -534,11 +534,12 @@ function openDimModal(idx) {
 
 function openGapModal(idx) {
   const g = GAP_DATA[idx];
-  const isMissing = g.currentSnippet === null;
+  const snippet = typeof g.currentSnippet === 'string' ? g.currentSnippet.trim() : g.currentSnippet;
+  const isMissing = snippet == null || snippet === '';
   const html = `
     <div class="modal-header">
       <span class="modal-badge" style="background:${g.priority==='high'?'#fee':'#fef3c7'}; color:${g.priority==='high'?'#ef4444':'#92400e'};">
-        ${g.priority === 'high' ? 'High Impact Gap' : 'Moderate Gap'}
+        ${g.priority === 'high' ? 'High priority' : 'Lower priority'}
       </span>
     </div>
     <h2>${g.title}</h2>
@@ -552,12 +553,12 @@ function openGapModal(idx) {
     <div class="modal-section">
       <div class="modal-section-label">${isMissing ? 'Current state' : 'Current schema'}</div>
       ${isMissing
-        ? `<div class="code-block missing">— No schema for this exists on the page —</div>`
+        ? `<div class="code-block missing">No schema for this is on the page yet.</div>`
         : codeBlock(g.currentSnippet, 'found')}
     </div>
 
     <div class="modal-section">
-      <div class="modal-section-label">Drop-in fix</div>
+      <div class="modal-section-label">What to add to your schema</div>
       ${codeBlock(g.fixSnippet, 'needed')}
     </div>
   `;
