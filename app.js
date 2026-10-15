@@ -229,8 +229,8 @@ async function handleRerun() {
 // ── Report orchestration ─────────────────────────────────────
 // Cache-aware entry point used by the score button and ?run= param.
 // Reuses an existing HubSpot report whenever the URL already has one
-// (no expiry) so we never burn credits re-running. `force: true` (Rerun)
-// always regenerates.
+// (no expiry) so we never burn credits re-running. `force: true` (Rerun
+// button and ?rerun=1) always regenerates.
 async function showReportForUrl(url, { force = false } = {}) {
   try {
     if (!force) {
@@ -935,8 +935,10 @@ function updateFixPlanVisibility(score) {
 
 // ── Initial view routing ─────────────────────────────────────
 // Priority: /report/{url} path → ?run={url} param → homepage input.
+// ?rerun=1 on those report routes forces a fresh score, same as Rerun.
 async function restoreInitialView() {
   const params = new URLSearchParams(window.location.search);
+  const force = params.get('rerun') === '1';
 
   // 1. Legacy ?jobID= links — fetch the stored result directly (never re-runs).
   const jobID = params.get('jobID');
@@ -947,16 +949,22 @@ async function restoreInitialView() {
   }
 
   // 2. /report/{url} — pull the cached report from HubSpot (any age).
+  //    ?rerun=1 skips the cache and regenerates, same as the Rerun button.
   const reportUrl = getReportUrlFromPath();
   if (reportUrl) {
-    await loadReportRoute(reportUrl);
+    if (force) {
+      await showReportForUrl(reportUrl, { force: true });
+    } else {
+      await loadReportRoute(reportUrl);
+    }
     return;
   }
 
   // 3. ?run={url} — auto-run (cache-aware, reuses a fresh cached report).
+  //    ?rerun=1 skips the cache the same way.
   const runParam = params.get('run');
   if (runParam && runParam.trim()) {
-    await showReportForUrl(normalizeInputUrl(runParam), { force: false });
+    await showReportForUrl(normalizeInputUrl(runParam), { force });
     return;
   }
 
