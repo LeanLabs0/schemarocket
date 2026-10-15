@@ -567,7 +567,7 @@ function renderResults(data, url) {
   const gaps = (data.gaps || data.missing || data.issues || []).map((g) => ({
     ...g,
     location: g.location ?? g.where ?? null,
-    currentSnippet: g.currentSnippet ?? g.current ?? g.existing ?? null,
+    currentSnippet: ReportCopy.gapSnippet(g),
     fixSnippet: g.fixSnippet ?? g.fix ?? g.recommended ?? null,
   }));
   const fixPlan = Handoff.readFixPlan
@@ -589,13 +589,15 @@ function renderGrade(grade, score, verdict, url) {
   const scoreNum = Number(score);
   const resolvedScore = Number.isFinite(scoreNum) ? scoreNum : (fallbackByGrade[gradeStr] ?? fallbackByGrade[gradeStr.charAt(0)] ?? 0);
   const clampedScore = Math.max(0, Math.min(100, resolvedScore));
-  $('#gradeLetterEl').textContent = `${Math.round(clampedScore)}%`;
+  const shownScore = ReportCopy.shownPct(clampedScore);
+  $('#gradeLetterEl').textContent = `${shownScore}%`;
   $('#gradeScoreEl').textContent = 'Score';
   $('#gradeUrlEl').textContent = url.replace(/^https?:\/\//, '');
   $('#verdictEl').textContent = verdict || 'Analysis complete.';
   const readiness = $('#gradeReadinessEl');
   if (readiness) {
-    readiness.textContent = ReportCopy.readinessLabel(clampedScore);
+    readiness.textContent = ReportCopy.readinessLabel(shownScore);
+    readiness.className = `grade-label ${ReportCopy.dimensionLevel(shownScore)}`;
   }
 
   // Set gauge fill for the semi-circle.
@@ -624,7 +626,7 @@ function renderDimensions(dims) {
       max: d.max ?? 100,
       pct: d.pct ?? (d.max ? Math.round(((d.score ?? 0) / d.max) * 100) : (d.score ?? 0)),
     }));
-  } else if (typeof dims === 'object') {
+  } else if (dims && typeof dims === 'object') {
     entries = Object.entries(dims).map(([k, v]) => ({
       ...(typeof v === 'object' ? v : {}),
       name: k,
@@ -648,7 +650,8 @@ function renderDimensions(dims) {
   }
 
   entries.forEach((dim, index) => {
-    const pct = Math.max(0, Math.min(100, Number(dim.pct) || 0));
+    const barPct = Math.max(0, Math.min(100, Number(dim.pct) || 0));
+    const pct = ReportCopy.shownPct(barPct);
     const level = ReportCopy.dimensionLevel(pct);
     const headline = ReportCopy.rowHeadline(dim, level);
     dim.headline = headline;
@@ -661,7 +664,7 @@ function renderDimensions(dims) {
         <span class="dimension-dot ${level}"></span>
         <span class="dimension-name">${esc(headline)}</span>
       </div>
-      <div class="dimension-bar-track"><div class="dimension-bar-fill ${level}" style="width: ${pct}%;"></div></div>
+      <div class="dimension-bar-track"><div class="dimension-bar-fill ${level}" style="width: ${barPct}%;"></div></div>
       <span class="dimension-score ${level}">${scoreLabel}</span>
       <span class="dimension-expand-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -682,7 +685,7 @@ function renderGaps(gaps) {
   let items = [];
   if (Array.isArray(gaps)) {
     items = gaps;
-  } else if (typeof gaps === 'object') {
+  } else if (gaps && typeof gaps === 'object') {
     items = Object.entries(gaps).map(([k, v]) => ({ title: k, description: typeof v === 'string' ? v : v.description || '' }));
   }
 
@@ -767,8 +770,9 @@ function delay(ms) {
 
 // ── Modal: dimension detail ─────────────────────────────────
 function openDimModal(dim) {
-  const pct = Number(dim.pct ?? (dim.max ? Math.round((dim.score / dim.max) * 100) : 0));
-  const verdict = pct === 100 ? 'Perfect score' : pct >= 70 ? 'Mostly there' : pct >= 40 ? 'Halfway there' : 'Needs work';
+  const rawPct = dim.pct ?? (dim.max ? Math.round(((Number(dim.score) || 0) / dim.max) * 100) : 0);
+  const pct = ReportCopy.shownPct(rawPct);
+  const verdict = ReportCopy.scoreVerdict(pct);
   const rationale = dim.rationale || 'Detail not available.';
 
   let html = `
@@ -809,10 +813,10 @@ function openDimModal(dim) {
 
 // ── Modal: gap detail ───────────────────────────────────────
 function openGapModal(gap) {
-  const priority = String(gap.priority || '').toLowerCase();
-  const isHigh = priority === 'high' || priority === 'critical';
-  const badgeLabel = isHigh ? 'High Impact Gap' : 'Moderate Gap';
-  const isMissing = gap.currentSnippet === null || gap.currentSnippet === undefined;
+  const isHigh = ReportCopy.isHighPriority(gap);
+  const badgeLabel = ReportCopy.gapPriorityLabel(gap);
+  const existing = ReportCopy.gapSnippet(gap);
+  const isMissing = existing == null;
 
   let html = `
     <div class="modal-header">
@@ -835,16 +839,17 @@ function openGapModal(gap) {
     <div class="modal-section">
       <div class="modal-section-label">${isMissing ? 'Current state' : 'Current schema'}</div>
       ${isMissing
-        ? `<div class="code-block missing">&mdash; No schema for this exists on the page &mdash;</div>`
-        : codeBlock(gap.currentSnippet, 'found')}
+        ? `<div class="code-block missing">No schema for this is on the page yet.</div>`
+        : codeBlock(existing, 'found')}
     </div>
   `;
 
-  if (gap.fixSnippet) {
+  const fixSnippet = typeof gap.fixSnippet === 'string' ? gap.fixSnippet.trim() : gap.fixSnippet;
+  if (fixSnippet) {
     html += `
       <div class="modal-section">
-        <div class="modal-section-label">Drop-in fix</div>
-        ${codeBlock(gap.fixSnippet, 'needed')}
+        <div class="modal-section-label">What to add to your schema</div>
+        ${codeBlock(fixSnippet, 'needed')}
       </div>
     `;
   }

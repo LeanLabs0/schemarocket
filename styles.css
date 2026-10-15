@@ -578,6 +578,18 @@ button {
   color: var(--color-text);
 }
 
+.grade-label.high {
+  color: #86efac;
+}
+
+.grade-label.mid {
+  color: #fde68a;
+}
+
+.grade-label.low {
+  color: #fca5a5;
+}
+
 .grade-url {
   font-size: var(--text-xs);
 }
